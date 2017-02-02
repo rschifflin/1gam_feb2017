@@ -4,3 +4,13 @@ version = "0.1.0"
 authors = ["Mark Schifflin <rschifflin@hotmail.com>"]
 
 [dependencies]
+piston = "0.28.0"
+piston-float = "0.2.0"
+piston2d-graphics = "0.20.0"
+glium = "0.16.0"
+piston2d-glium_graphics = "0.36.0"
+conrod = {version = "0.51.1", features = ["glium"]}
+specs = "0.7.1"
+cpal = {git = "https://github.com/rschifflin/cpal"}
+collider = "0.2.0"
+futures = "0.1.9"
