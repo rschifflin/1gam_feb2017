@@ -1,0 +1,6 @@
+[package]
+name = "1gam_feb2017"
+version = "0.1.0"
+authors = ["Mark Schifflin <rschifflin@hotmail.com>"]
+
+[dependencies]
