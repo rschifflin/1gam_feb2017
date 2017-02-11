@@ -3,8 +3,10 @@ use specs::{Allocator, System, RunArg, Join, Storage, MaskedStorage};
 use systems::NamedSystem;
 use world::Context;
 use std::f64::consts::PI;
+use input;
 
 pub struct Physics;
+const MAX_SPEED: f64 = 10.0;
 const GRAVITY: Velocity = Velocity { speed: 0.1, angle: 0.5*PI };
 
 impl System<Context> for Physics {
@@ -18,6 +20,7 @@ impl System<Context> for Physics {
     });
 
     for mut val in (&mut positions, &mut velocities, &collisions, &physicals).iter() {
+      jump(&mut val, context.input);
       update(&mut val);
       apply(&mut val);
     }
@@ -30,8 +33,15 @@ impl NamedSystem<Context> for Physics {
   }
 }
 
+fn jump(&mut (_, ref mut vel, _, _): &mut (&mut Position, &mut Velocity, &Collision, &Physical), (last_input, next_input): (input::Input, input::Input)) {
+  if next_input.contains(input::JUMP) && !last_input.contains(input::JUMP) {
+    **vel = Velocity::add(vel, &Velocity { speed: 1.0, angle: -0.5 * PI });
+  }
+}
+
 fn update(&mut (_, ref mut vel, _, _): &mut (&mut Position, &mut Velocity, &Collision, &Physical)) {
   **vel = Velocity::add(vel, &GRAVITY);
+  vel.speed = vel.speed.min(MAX_SPEED);
 }
 
 fn apply(&mut (ref mut pos, ref mut vel, _, _): &mut (&mut Position, &mut Velocity, &Collision, &Physical)) {

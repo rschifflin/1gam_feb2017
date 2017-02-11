@@ -14,3 +14,4 @@ specs = "0.7.1"
 cpal = {git = "https://github.com/rschifflin/cpal"}
 collider = "0.2.0"
 futures = "0.1.9"
+bitflags = "0.7"

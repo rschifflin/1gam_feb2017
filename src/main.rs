@@ -3,6 +3,7 @@
 
 extern crate cpal;
 #[macro_use] extern crate conrod;
+#[macro_use] extern crate bitflags;
 extern crate float;
 extern crate futures;
 extern crate glium;
@@ -20,6 +21,7 @@ mod sound;
 mod screen;
 */
 mod world;
+mod input;
 /*
 mod ui;
 */
@@ -67,50 +69,38 @@ impl App {
   }
 
   fn input(&mut self, args: &Input) {
-    let p1_direction = match *args {
+    /*
       Input::Resize(w, h) => println!("Resizing: {}, {}", w, h),
-      _ => ()
-    };
+    */
 
     /*self.ui.ui.handle_event(args.clone());
 
     use components::control::player::Direction;
     let Context { p1_paddle, p2_paddle, .. } = self.context.clone();
-
-    let p1_direction = match *args {
-      Input::Press(Button::Keyboard(keyboard::Key::S)) => Some(Direction::Down),
-      Input::Press(Button::Keyboard(keyboard::Key::W)) => Some(Direction::Up),
-      Input::Release(Button::Keyboard(keyboard::Key::S)) => Some(Direction::Neutral),
-      Input::Release(Button::Keyboard(keyboard::Key::W)) => Some(Direction::Neutral),
-      _ => None
-    };
-
-    let p2_direction = match *args {
-      Input::Press(Button::Keyboard(keyboard::Key::Down)) => Some(Direction::Down),
-      Input::Press(Button::Keyboard(keyboard::Key::Up)) => Some(Direction::Up),
-      Input::Release(Button::Keyboard(keyboard::Key::Down)) => Some(Direction::Neutral),
-      Input::Release(Button::Keyboard(keyboard::Key::Up)) => Some(Direction::Neutral),
-      _ => None
-    };
-
-    self.planner.run_custom(move |arg: RunArg| {
-      let mut players = arg.fetch(|w| {
-        w.write::<::components::control::Player>()
-      });
-
-      p1_direction.and_then(|dir| {
-        players.get_mut(p1_paddle).map(|mut p1| {
-          p1.direction = dir;
-        })
-      });
-
-      p2_direction.and_then(|dir| {
-        players.get_mut(p2_paddle).map(|mut p2| {
-          p2.direction = dir;
-        })
-      });
-    })
     */
+
+    let mut current_input = self.context.input.0;
+    match *args {
+      /*
+      Input::Press(x) => println!("Pressed {:?}", x),
+      Input::Release(x) => println!("Released {:?}", x),
+      */
+      Input::Press(Button::Keyboard(keyboard::Key::Up)) => current_input = current_input | input::UP,
+      Input::Press(Button::Keyboard(keyboard::Key::Down)) => current_input = current_input | input::DOWN,
+      Input::Press(Button::Keyboard(keyboard::Key::Left)) => current_input = current_input | input::LEFT,
+      Input::Press(Button::Keyboard(keyboard::Key::Right)) => current_input = current_input | input::RIGHT,
+      Input::Press(Button::Keyboard(keyboard::Key::Space)) => current_input = current_input | input::JUMP,
+      Input::Press(Button::Keyboard(keyboard::Key::Z)) => current_input = current_input | input::WHISTLE,
+
+      Input::Release(Button::Keyboard(keyboard::Key::Up)) => current_input = current_input - input::UP,
+      Input::Release(Button::Keyboard(keyboard::Key::Down)) => current_input = current_input - input::DOWN,
+      Input::Release(Button::Keyboard(keyboard::Key::Left)) => current_input = current_input - input::LEFT,
+      Input::Release(Button::Keyboard(keyboard::Key::Right)) => current_input = current_input - input::RIGHT,
+      Input::Release(Button::Keyboard(keyboard::Key::Space)) => current_input = current_input - input::JUMP,
+      Input::Release(Button::Keyboard(keyboard::Key::Z)) => current_input = current_input - input::WHISTLE,
+      _ => ()
+    };
+    self.context.input.1 = current_input;
   }
 
   fn update(&mut self, &UpdateArgs { dt }: &UpdateArgs) {
@@ -143,6 +133,7 @@ fn main() {
   world::register(&mut world);
   let (director,) = world::create_initial_entities(&mut world);
   let context = world::Context {
+    input: (input::Input::empty(), input::Input::empty()),
     director: director
     //sound_tx: sound_tx
   };
