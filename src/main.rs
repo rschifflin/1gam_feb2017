@@ -1,5 +1,4 @@
 #![feature(windows_subsystem)]
-#![feature(duration_checked_ops)]
 #![windows_subsystem = "windows"]
 
 extern crate cpal;
@@ -14,9 +13,7 @@ extern crate specs;
 extern crate collider;
 
 mod components;
-/*
 mod systems;
-*/
 #[allow(dead_code)] mod colors;
 /*
 mod sound;
@@ -40,7 +37,8 @@ pub struct App {
   //ui: ui::Ui, //Conrod drawing context
   gl: Glium2d, // OpenGL drawing backend.
   context: world::Context,
-  planner: specs::Planner<world::Context>
+  planner: specs::Planner<world::Context>,
+  time_since_update: f64
 }
 
 impl App {
@@ -115,10 +113,12 @@ impl App {
     */
   }
 
-  fn update(&mut self, _: &UpdateArgs) {
-    /*
-    self.planner.dispatch(self.context.clone());
-    */
+  fn update(&mut self, &UpdateArgs { dt }: &UpdateArgs) {
+    self.time_since_update += dt;
+    if self.time_since_update > 0.0166666 {
+      self.planner.dispatch(self.context.clone());
+      self.time_since_update = 0.0;
+    }
   }
 }
 
@@ -147,8 +147,8 @@ fn main() {
     //sound_tx: sound_tx
   };
   let mut planner = specs::Planner::<world::Context>::new(world, 4);
+  systems::plan_system(&mut planner, systems::physics::Physics, 0);
   /*
-  systems::plan_system(&mut planner, systems::Physics, 0);
   systems::plan_system(&mut planner, systems::control::Player, 0);
     let mut ui = ui::Ui::new(&mut window);
     ui.update();
@@ -159,6 +159,7 @@ fn main() {
     gl: Glium2d::new(opengl, &window),
     context: context,
     planner: planner,
+    time_since_update: 0.0
   };
 
   while let Some(e) = window.next() {
