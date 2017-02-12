@@ -8,3 +8,38 @@ bitflags! {
     const WHISTLE  = 0b00100000,
   }
 }
+
+#[derive(Clone)]
+pub struct InputBuffer {
+  raw_input: Input,
+  buf_input: Input,
+  last_buf_input: Input
+}
+
+impl InputBuffer {
+  pub fn new() -> InputBuffer {
+    InputBuffer {
+      raw_input: Input::empty(),
+      buf_input: Input::empty(),
+      last_buf_input: Input::empty()
+    }
+  }
+
+  pub fn current(&self) -> (Input, Input) {
+    (self.last_buf_input, self.buf_input)
+  }
+
+  pub fn on(&mut self, flag: Input) {
+    self.raw_input |= flag;
+    self.buf_input |= flag;
+  }
+
+  pub fn off(&mut self, flag: Input) {
+    self.raw_input -= flag;
+  }
+
+  pub fn update(&mut self) {
+    self.last_buf_input = self.buf_input;
+    self.buf_input = self.raw_input;
+  }
+}

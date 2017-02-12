@@ -1,9 +1,9 @@
 use specs::Entity;
-use input::Input;
+use input::InputBuffer;
 
 #[derive(Clone)]
 pub struct Context {
-  pub input: (Input, Input), //(Last, Next)
+  pub input: InputBuffer,
   pub director: Entity,
   //sound_tx: sound_tx
 }

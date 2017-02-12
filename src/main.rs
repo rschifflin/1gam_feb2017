@@ -48,7 +48,7 @@ impl App {
     let world = self.planner.mut_world();
     //let ui = &mut self.ui;
     let mut frame = window.draw();
-    frame.clear_color(1.0, 0.0, 0.0, 1.0);
+    frame.clear_color(0.0, 0.0, 1.0, 1.0);
     self.gl.draw(&mut frame, args.viewport(), |c, g| {
       //ui.draw(c, g);
       Self::render_gfx(c, g, world);
@@ -62,6 +62,12 @@ impl App {
 
     let positions = world.read::<components::Position>();
     let sprites = world.read::<components::Sprite>();
+    let collision = world.read::<components::Collision>();
+    for (pos, col) in (&positions, &collision).iter() {
+      let xform = c.transform.trans(pos.x, pos.y);
+      rectangle(colors::RED, [0.0, 0.0, col.bounds.dims().x, col.bounds.dims().y], xform, g);
+    };
+
     for (pos, sprite) in (&positions, &sprites).iter() {
       let xform = c.transform.trans(pos.x, pos.y);
       rectangle(colors::GREEN, [0.0, 0.0, 10.0, 10.0], xform, g);
@@ -79,34 +85,34 @@ impl App {
     let Context { p1_paddle, p2_paddle, .. } = self.context.clone();
     */
 
-    let mut current_input = self.context.input.0;
+    let mut input = &mut self.context.input;
     match *args {
       /*
       Input::Press(x) => println!("Pressed {:?}", x),
       Input::Release(x) => println!("Released {:?}", x),
       */
-      Input::Press(Button::Keyboard(keyboard::Key::Up)) => current_input = current_input | input::UP,
-      Input::Press(Button::Keyboard(keyboard::Key::Down)) => current_input = current_input | input::DOWN,
-      Input::Press(Button::Keyboard(keyboard::Key::Left)) => current_input = current_input | input::LEFT,
-      Input::Press(Button::Keyboard(keyboard::Key::Right)) => current_input = current_input | input::RIGHT,
-      Input::Press(Button::Keyboard(keyboard::Key::Space)) => current_input = current_input | input::JUMP,
-      Input::Press(Button::Keyboard(keyboard::Key::Z)) => current_input = current_input | input::WHISTLE,
+      Input::Press(Button::Keyboard(keyboard::Key::Up)) => input.on(input::UP),
+      Input::Press(Button::Keyboard(keyboard::Key::Down)) => input.on(input::DOWN),
+      Input::Press(Button::Keyboard(keyboard::Key::Left)) => input.on(input::LEFT),
+      Input::Press(Button::Keyboard(keyboard::Key::Right)) => input.on(input::RIGHT),
+      Input::Press(Button::Keyboard(keyboard::Key::Space)) => input.on(input::JUMP),
+      Input::Press(Button::Keyboard(keyboard::Key::Z)) => input.on(input::WHISTLE),
 
-      Input::Release(Button::Keyboard(keyboard::Key::Up)) => current_input = current_input - input::UP,
-      Input::Release(Button::Keyboard(keyboard::Key::Down)) => current_input = current_input - input::DOWN,
-      Input::Release(Button::Keyboard(keyboard::Key::Left)) => current_input = current_input - input::LEFT,
-      Input::Release(Button::Keyboard(keyboard::Key::Right)) => current_input = current_input - input::RIGHT,
-      Input::Release(Button::Keyboard(keyboard::Key::Space)) => current_input = current_input - input::JUMP,
-      Input::Release(Button::Keyboard(keyboard::Key::Z)) => current_input = current_input - input::WHISTLE,
+      Input::Release(Button::Keyboard(keyboard::Key::Up)) => input.off(input::UP),
+      Input::Release(Button::Keyboard(keyboard::Key::Down)) => input.off(input::DOWN),
+      Input::Release(Button::Keyboard(keyboard::Key::Left)) => input.off(input::LEFT),
+      Input::Release(Button::Keyboard(keyboard::Key::Right)) => input.off(input::RIGHT),
+      Input::Release(Button::Keyboard(keyboard::Key::Space)) => input.off(input::JUMP),
+      Input::Release(Button::Keyboard(keyboard::Key::Z)) => input.off(input::WHISTLE),
       _ => ()
     };
-    self.context.input.1 = current_input;
   }
 
   fn update(&mut self, &UpdateArgs { dt }: &UpdateArgs) {
     self.time_since_update += dt;
     if self.time_since_update > 0.0166666 {
       self.planner.dispatch(self.context.clone());
+      self.context.input.update();
       self.time_since_update = 0.0;
     }
   }
@@ -133,12 +139,14 @@ fn main() {
   world::register(&mut world);
   let (director,) = world::create_initial_entities(&mut world);
   let context = world::Context {
-    input: (input::Input::empty(), input::Input::empty()),
+    input: input::InputBuffer::new(),
     director: director
     //sound_tx: sound_tx
   };
   let mut planner = specs::Planner::<world::Context>::new(world, 4);
-  systems::plan_system(&mut planner, systems::physics::Physics, 0);
+  systems::plan_system(&mut planner, systems::behavior::Hero, 0);
+  systems::plan_system(&mut planner, systems::physics::Physics, 1);
+
   /*
   systems::plan_system(&mut planner, systems::control::Player, 0);
     let mut ui = ui::Ui::new(&mut window);

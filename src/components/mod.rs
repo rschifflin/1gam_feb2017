@@ -3,6 +3,7 @@ mod physical;
 mod position;
 mod sprite;
 mod velocity;
+pub mod behavior;
 
 pub use self::collision::Collision;
 pub use self::physical::Physical;

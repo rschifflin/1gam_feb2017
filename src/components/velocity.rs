@@ -24,7 +24,7 @@ impl Velocity {
   }
 
   pub fn from_cart((x, y): (f64, f64)) -> Velocity {
-    let speed = ((x*x) + (y*y)).sqrt();
+    let speed = x.hypot(y);
     let angle = y.atan2(x);
 
     Velocity {
