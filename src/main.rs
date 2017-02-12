@@ -8,10 +8,14 @@ extern crate float;
 extern crate futures;
 extern crate glium;
 extern crate glium_graphics;
+extern crate serde;
+#[macro_use] extern crate serde_derive;
+extern crate serde_json;
 extern crate graphics;
 extern crate piston;
 extern crate specs;
 extern crate collider;
+extern crate itertools;
 
 mod components;
 mod systems;
@@ -22,6 +26,7 @@ mod screen;
 */
 mod world;
 mod input;
+mod map;
 /*
 mod ui;
 */
@@ -124,6 +129,11 @@ fn main() {
   spawn_audio_thread(sound_rx);
   */
 
+  let map: map::Map = std::fs::File::open("./assets/testmap.json")
+    .map_err(|e| e.into())
+    .and_then(serde_json::from_reader)
+    .unwrap();
+
   let opengl = OpenGL::V3_2;
   let mut window: GliumWindow = WindowSettings::new(
     "Noteworthy",
@@ -137,7 +147,7 @@ fn main() {
   // Create a new game and run it.
   let mut world = specs::World::new();
   world::register(&mut world);
-  let (director,) = world::create_initial_entities(&mut world);
+  let (director,) = world::create_initial_entities(&mut world, &map);
   let context = world::Context {
     input: input::InputBuffer::new(),
     director: director

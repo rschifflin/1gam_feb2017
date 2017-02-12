@@ -24,7 +24,7 @@ impl System<Context> for Hero {
 }
 
 fn jump(&mut (_, ref mut vel, _): &mut (&mut Position, &mut Velocity, &HeroBehavior), (last_input, next_input): (input::Input, input::Input)) {
-  if next_input.contains(input::JUMP) && !last_input.contains(input::JUMP) {
+  if next_input.contains(input::UP) && !last_input.contains(input::UP) {
     **vel = Velocity::add(vel, &Velocity { speed: 5.0, angle: -0.5 * PI });
   }
 }
