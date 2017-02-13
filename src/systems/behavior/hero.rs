@@ -25,25 +25,30 @@ impl System<Context> for Hero {
 
 fn jump(&mut (_, ref mut vel, _): &mut (&mut Position, &mut Velocity, &HeroBehavior), (last_input, next_input): (input::Input, input::Input)) {
   if next_input.contains(input::UP) && !last_input.contains(input::UP) {
-    **vel = Velocity::add(vel, &Velocity { speed: 5.0, angle: -0.5 * PI });
+    let (x, y) = vel.to_cart();
+    **vel = Velocity::from_cart((x, -5.0));
   }
 }
 
 fn run(&mut (_, ref mut vel, _): &mut (&mut Position, &mut Velocity, &HeroBehavior), (last_input, next_input): (input::Input, input::Input)) {
-  if next_input.contains(input::RIGHT) && !last_input.contains(input::RIGHT) {
-    **vel = Velocity::add(vel, &Velocity { speed: 3.0, angle: 0.0});
+  if next_input.contains(input::RIGHT) {
+    let (x, y) = vel.to_cart();
+    **vel = Velocity::from_cart((3.0, y));
   }
 
-  if !next_input.contains(input::RIGHT) && last_input.contains(input::RIGHT) {
-    **vel = Velocity::add(vel, &Velocity { speed: 3.0, angle: PI });
+  if !next_input.contains(input::RIGHT) {
+    let (x, y) = vel.to_cart();
+    **vel = Velocity::from_cart((x.min(0.0), y));
   }
 
-  if next_input.contains(input::LEFT) && !last_input.contains(input::LEFT) {
-    **vel = Velocity::add(vel, &Velocity { speed: 3.0, angle: PI });
+  if next_input.contains(input::LEFT) {
+    let (x, y) = vel.to_cart();
+    **vel = Velocity::from_cart((-3.0, y));
   }
 
-  if !next_input.contains(input::LEFT) && last_input.contains(input::LEFT) {
-    **vel = Velocity::add(vel, &Velocity { speed: 3.0, angle: 0.0 });
+  if !next_input.contains(input::LEFT) {
+    let (x, y) = vel.to_cart();
+    **vel = Velocity::from_cart((x.max(0.0), y));
   }
 }
 
