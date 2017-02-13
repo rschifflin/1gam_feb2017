@@ -19,6 +19,7 @@ extern crate itertools;
 
 mod components;
 mod systems;
+mod geom;
 #[allow(dead_code)] mod colors;
 /*
 mod sound;
@@ -68,15 +69,18 @@ impl App {
     let positions = world.read::<components::Position>();
     let sprites = world.read::<components::Sprite>();
     let collision = world.read::<components::Collision>();
-    for (pos, col) in (&positions, &collision).iter() {
-      let xform = c.transform.trans(pos.x, pos.y);
-      rectangle(colors::RED, [0.0, 0.0, col.bounds.dims().x, col.bounds.dims().y], xform, g);
-    };
+    let cameras = world.read::<components::Camera>();
+    for camera in (&cameras).iter() {
+      for (pos, col) in (&positions, &collision).iter() {
+        let xform = c.transform.trans(pos.x - camera.screen.x, pos.y - camera.screen.y);
+        rectangle(colors::RED, [0.0, 0.0, col.bounds.dims().x, col.bounds.dims().y], xform, g);
+      };
 
-    for (pos, sprite) in (&positions, &sprites).iter() {
-      let xform = c.transform.trans(pos.x, pos.y);
-      rectangle(colors::GREEN, [0.0, 0.0, 10.0, 10.0], xform, g);
-    };
+      for (pos, sprite) in (&positions, &sprites).iter() {
+        let xform = c.transform.trans(pos.x - camera.screen.x, pos.y - camera.screen.y);
+        rectangle(colors::GREEN, [0.0, 0.0, 10.0, 10.0], xform, g);
+      };
+    }
   }
 
   fn input(&mut self, args: &Input) {
@@ -156,6 +160,7 @@ fn main() {
   let mut planner = specs::Planner::<world::Context>::new(world, 4);
   systems::plan_system(&mut planner, systems::behavior::Hero, 0);
   systems::plan_system(&mut planner, systems::physics::Physics, 1);
+  systems::plan_system(&mut planner, systems::camera::Camera, 2);
 
   /*
   systems::plan_system(&mut planner, systems::control::Player, 0);

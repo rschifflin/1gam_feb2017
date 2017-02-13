@@ -5,6 +5,7 @@ use std::f64::consts::PI;
 use collider::geom::Shape;
 use collider::geom::Vec2;
 use itertools::Itertools;
+use geom::Rect;
 use map;
 
 mod context;
@@ -17,10 +18,20 @@ pub fn register(world: &mut World) {
   world.register::<Velocity>();
   world.register::<Velocity>();
   world.register::<Hero>();
+  world.register::<Camera>();
 }
 
 pub fn create_initial_entities(world: &mut World, map: &map::Map) -> (Entity,) {
   let entity = create_hero(world, map);
+  world //Initial camera
+    .create_now()
+    .with::<Camera>(Camera {
+      target: entity.clone(),
+      screen: Rect::new(0.0,0.0,640.0,480.0),
+      bounds: Rect::new(0.0,0.0,1920.0,1080.0)
+    })
+    .build();
+
   world //Some non-hero object
     .create_now()
     .with::<Position>(Position { x: 30.0, y: 30.0 })

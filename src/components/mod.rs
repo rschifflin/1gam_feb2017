@@ -2,6 +2,7 @@ mod collision;
 mod physical;
 mod position;
 mod sprite;
+mod camera;
 mod velocity;
 pub mod behavior;
 
@@ -10,3 +11,4 @@ pub use self::physical::Physical;
 pub use self::position::Position;
 pub use self::sprite::Sprite;
 pub use self::velocity::Velocity;
+pub use self::camera::Camera;
