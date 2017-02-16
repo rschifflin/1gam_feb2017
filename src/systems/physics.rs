@@ -1,28 +1,34 @@
 use components::{Physical, Position, Collision, Velocity};
-use specs::{Entity, Entities, Allocator, System, RunArg, Join, Storage, MaskedStorage};
+use specs::{Entity, Entities, Allocator, Index, System, RunArg, Join, Storage, MaskedStorage};
 use specs::UnprotectedStorage;
+use std::collections::HashMap;
 use systems::NamedSystem;
 use world::Context;
 use std::f64::consts::PI;
 use collider::{Event, Collider, Hitbox};
 use collider::geom::{PlacedShape, vec2};
 use input;
+use events;
 
 pub struct Physics;
 const MAX_SPEED: f64 = 10.0;
-const NUDGE_PADDING: f64 = 0.001;
+const NUDGE_PADDING: f64 = 0.01;
 const COLLIDE_PADDING: f64 = NUDGE_PADDING * 0.01;
 const GRAVITY: Velocity = Velocity { speed: 0.1, angle: 0.5*PI };
 
 impl System<Context> for Physics {
   fn run(&mut self, arg: RunArg, context: Context) {
-    let (mut entities, mut positions, mut velocities, collisions, physicals) = arg.fetch(|w| {
+    let (mut entities, mut positions, mut velocities, collisions, physicals, mut events) = arg.fetch(|w| {
       let pos = w.write::<Position>();
       let vel = w.write::<Velocity>();
       let col = w.read::<Collision>();
       let phys = w.read::<Physical>();
-      (w.entities(), pos, vel, col, phys)
+      let events = w.write_resource::<events::Events<events::Physics>>();
+      (w.entities(), pos, vel, col, phys, events)
     });
+
+    events.clear();
+    let mut lookup_table: HashMap<u64, Entity> = HashMap::new();
 
     for mut val in (&mut positions, &mut velocities, &physicals).iter() {
       gravitate(&mut val);
@@ -42,10 +48,10 @@ impl System<Context> for Physics {
 
       let mut hitbox = Hitbox::new(PlacedShape::new(hitbox_pos, hitbox_bounds));
       hitbox.vel.pos = vec2(vel_x, vel_y);
+      lookup_table.insert(eid.get_id() as u64, eid.clone());
       collider.add_hitbox(eid.get_id() as u64, hitbox);
     }
 
-    let mut entity_key = &entities;
     while collider.time() < 1.0 {
       let next_time = collider.next_time().min(1.0);
       collider.set_time(next_time);
@@ -70,7 +76,11 @@ impl System<Context> for Physics {
             }
             collider.update_hitbox(e1, h1);
           },
-          Event::Separate => { }
+          Event::Separate => {
+            let eid1 = lookup_table.get(&e1).unwrap();
+            let eid2 = lookup_table.get(&e2).unwrap();
+            events.push(events::Physics::Collide(eid1.clone(), eid2.clone()))
+          }
         }
       }
     };

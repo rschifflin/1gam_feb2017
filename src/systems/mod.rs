@@ -2,6 +2,7 @@ use specs::{Planner, System};
 pub mod physics;
 pub mod behavior;
 pub mod camera;
+pub mod director;
 
 pub trait NamedSystem<C>: System<C> {
   fn name(&self) -> &'static str;

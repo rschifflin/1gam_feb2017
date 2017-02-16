@@ -20,10 +20,10 @@ extern crate itertools;
 mod components;
 mod systems;
 mod geom;
+mod events;
 #[allow(dead_code)] mod colors;
 /*
 mod sound;
-mod screen;
 */
 mod world;
 mod input;
@@ -70,6 +70,7 @@ impl App {
     let sprites = world.read::<components::Sprite>();
     let collision = world.read::<components::Collision>();
     let cameras = world.read::<components::Camera>();
+    let blast_zones = world.read::<components::BlastZone>();
     for camera in (&cameras).iter() {
       for (pos, col) in (&positions, &collision).iter() {
         let xform = c.transform.trans(pos.x - camera.screen.x, pos.y - camera.screen.y);
@@ -79,6 +80,11 @@ impl App {
       for (pos, sprite) in (&positions, &sprites).iter() {
         let xform = c.transform.trans(pos.x - camera.screen.x, pos.y - camera.screen.y);
         rectangle(colors::GREEN, [0.0, 0.0, 10.0, 10.0], xform, g);
+      };
+
+      for (pos, col, _) in (&positions, &collision, &blast_zones).iter() {
+        let xform = c.transform.trans(pos.x - camera.screen.x, pos.y - camera.screen.y);
+        rectangle(colors::YELLOW, [0.0, 0.0, col.bounds.dims().x, col.bounds.dims().y], xform, g);
       };
     }
   }
@@ -133,11 +139,6 @@ fn main() {
   spawn_audio_thread(sound_rx);
   */
 
-  let map: map::Map = std::fs::File::open("./assets/testmap.json")
-    .map_err(|e| e.into())
-    .and_then(serde_json::from_reader)
-    .unwrap();
-
   let opengl = OpenGL::V3_2;
   let mut window: GliumWindow = WindowSettings::new(
     "Noteworthy",
@@ -151,22 +152,22 @@ fn main() {
   // Create a new game and run it.
   let mut world = specs::World::new();
   world::register(&mut world);
-  let (director,) = world::create_initial_entities(&mut world, &map);
-  let context = world::Context {
-    input: input::InputBuffer::new(),
-    director: director
-    //sound_tx: sound_tx
-  };
-  let mut planner = specs::Planner::<world::Context>::new(world, 4);
-  systems::plan_system(&mut planner, systems::behavior::Hero, 0);
-  systems::plan_system(&mut planner, systems::physics::Physics, 1);
-  systems::plan_system(&mut planner, systems::camera::Camera, 2);
 
+  let mut planner = specs::Planner::<world::Context>::new(world, 4);
+  systems::plan_system(&mut planner, systems::director::Director, 0);
+  systems::plan_system(&mut planner, systems::behavior::Hero, 10);
+  systems::plan_system(&mut planner, systems::physics::Physics, 20);
+  systems::plan_system(&mut planner, systems::camera::Camera, 30);
   /*
   systems::plan_system(&mut planner, systems::control::Player, 0);
     let mut ui = ui::Ui::new(&mut window);
     ui.update();
   */
+
+  let context = world::Context {
+    input: input::InputBuffer::new(),
+    //sound_tx: sound_tx
+  };
 
   let mut app = App {
     //ui: ui,

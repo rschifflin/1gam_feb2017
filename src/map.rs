@@ -10,7 +10,8 @@ pub enum LayerType {
 
 #[derive(Debug, Deserialize, PartialEq)]
 pub enum ObjectType {
-  Start
+  Start,
+  BlastZone
 }
 
 #[derive(Debug, Deserialize)]
@@ -19,7 +20,9 @@ pub struct Object {
   #[serde(rename = "type")]
   pub object_type: ObjectType,
   pub x: usize,
-  pub y: usize
+  pub y: usize,
+  pub width: usize,
+  pub height: usize
 }
 
 #[derive(Debug, Deserialize)]
