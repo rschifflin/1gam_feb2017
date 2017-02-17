@@ -1,4 +1,3 @@
-use specs::Entity;
 use input::InputBuffer;
 
 #[derive(Clone)]

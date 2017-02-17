@@ -1,30 +1,27 @@
 use components;
-use specs::{Allocator, System, RunArg, Join, Storage, MaskedStorage};
-use specs::UnprotectedStorage;
-use systems::physics::Physics;
+use specs::{System, RunArg, Join};
 use systems::NamedSystem;
 use world::Context;
-use events::{self, Events};
 use itertools::Itertools;
 use specs::{Entity, World};
 use components::*;
 use components::behavior::*;
-use std::f64::consts::PI;
 use collider::geom::Shape;
 use collider::geom::Vec2;
 use geom::Rect;
 use serde_json;
 use std::fs::File;
 use map;
+use events;
 
 pub struct Director;
 
 impl System<Context> for Director {
-  fn run(&mut self, arg: RunArg, context: Context) {
-    let (mut game_states, heroes, blast_zones, mut game_events, mut phys_events) = arg.fetch(|w| {
+  fn run(&mut self, arg: RunArg, _: Context) {
+    let (game_states, heroes, blast_zones, mut game_events, phys_events) = arg.fetch(|w| {
       let mut game_states = w.write::<components::GameState>();
-      let mut game_events = w.write_resource::<Events<events::Game>>();
-      let mut phys_events = w.write_resource::<Events<events::Physics>>();
+      let mut game_events = w.write_resource::<Vec<events::Game>>();
+      let mut phys_events = w.write_resource::<Vec<events::Physics>>();
       let old_events = game_events.clone();
       game_events.clear();
       for event in old_events.iter() {
@@ -89,7 +86,7 @@ fn create_entities(world: &World, map_file: &'static str) {
     .unwrap();
 
   let hero = create_hero(world, &map);
-  let camera = world
+  world
     .create_later_build()
     .with::<Camera>(Camera {
       target: hero.clone(),
@@ -98,10 +95,10 @@ fn create_entities(world: &World, map_file: &'static str) {
     })
     .build(); //Initial Camera
 
-  let other = world
+  world
     .create_later_build()
     .with::<Position>(Position { x: 30.0, y: 30.0 })
-    .with::<Collision>(Collision { bounds: Shape::new_rect(Vec2::new(10.0, 10.0)) } )
+    .with::<Collision>(Collision { bounds: Shape::new_rect(Vec2::new(16.0, 16.0)) } )
     .with::<Physical>(Physical {})
     .with::<Sprite>(Sprite {})
     .with::<Velocity>(Velocity::zero())
@@ -127,7 +124,7 @@ fn create_hero(world: &World, map: &map::Map) -> Entity {
   world
     .create_later_build()
     .with::<Position>(Position { x: start_x, y: start_y })
-    .with::<Collision>(Collision { bounds: Shape::new_rect(Vec2::new(10.0, 10.0)) } )
+    .with::<Collision>(Collision { bounds: Shape::new_rect(Vec2::new(16.0, 16.0)) } )
     .with::<Physical>(Physical {})
     .with::<Sprite>(Sprite {})
     .with::<Hero>(Hero::new())

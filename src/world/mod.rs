@@ -1,12 +1,6 @@
-use specs::{Entity, World};
+use specs::World;
 use components::*;
 use components::behavior::*;
-use std::f64::consts::PI;
-use collider::geom::Shape;
-use collider::geom::Vec2;
-use itertools::Itertools;
-use geom::Rect;
-use map;
 use events;
 
 mod context;
@@ -29,10 +23,10 @@ pub fn register(world: &mut World) {
     .with::<Essential>(Essential {})
     .build();
 
-  let phys_events: events::Events<events::Physics> = events::Events::new();
+  let phys_events: Vec<events::Physics> = vec![];
   world.add_resource(phys_events);
 
-  let mut game_events: events::Events<events::Game> = events::Events::new();
+  let mut game_events: Vec<events::Game> = vec![];
   game_events.push(events::Game::Init);
   world.add_resource(game_events);
 }

@@ -64,7 +64,7 @@ impl App {
   }
 
   fn render_gfx(c: graphics::Context, g: &mut GliumGraphics<Frame>, world: &mut World) {
-    use graphics::{ellipse, rectangle, Transformed};
+    use graphics::{rectangle, Transformed};
 
     let positions = world.read::<components::Position>();
     let sprites = world.read::<components::Sprite>();
@@ -77,9 +77,9 @@ impl App {
         rectangle(colors::RED, [0.0, 0.0, col.bounds.dims().x, col.bounds.dims().y], xform, g);
       };
 
-      for (pos, sprite) in (&positions, &sprites).iter() {
+      for (pos, _) in (&positions, &sprites).iter() {
         let xform = c.transform.trans(pos.x - camera.screen.x, pos.y - camera.screen.y);
-        rectangle(colors::GREEN, [0.0, 0.0, 10.0, 10.0], xform, g);
+        rectangle(colors::GREEN, [0.0, 0.0, 16.0, 16.0], xform, g);
       };
 
       for (pos, col, _) in (&positions, &collision, &blast_zones).iter() {

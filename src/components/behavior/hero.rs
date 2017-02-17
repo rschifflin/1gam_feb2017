@@ -3,7 +3,7 @@ use specs::{Component, VecStorage};
 #[derive(Debug)]
 enum MoveState {
   Standing,
-  Jumping
+  //Jumping
 }
 
 #[derive(Debug)]

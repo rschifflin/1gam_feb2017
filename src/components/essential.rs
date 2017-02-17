@@ -1,4 +1,4 @@
-use specs::{Entity, Component, NullStorage};
+use specs::{Component, NullStorage};
 
 #[derive(Default, Debug)]
 pub struct Essential;

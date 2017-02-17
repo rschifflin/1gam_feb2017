@@ -1,15 +1,14 @@
-use components::{Physical, Position, Collision, Velocity};
+use components::{Position, Velocity};
 use components::behavior::Hero as HeroBehavior;
-use specs::{Allocator, System, RunArg, Join, Storage, MaskedStorage};
+use specs::{System, RunArg, Join};
 use systems::NamedSystem;
 use world::Context;
-use std::f64::consts::PI;
 use input;
 
 pub struct Hero;
 impl System<Context> for Hero {
   fn run(&mut self, arg: RunArg, context: Context) {
-    let (mut positions, mut velocities, mut heroes) = arg.fetch(|w| {
+    let (mut positions, mut velocities, heroes) = arg.fetch(|w| {
       let pos = w.write::<Position>();
       let vel = w.write::<Velocity>();
       let heroes = w.read::<HeroBehavior>();
@@ -25,14 +24,14 @@ impl System<Context> for Hero {
 
 fn jump(&mut (_, ref mut vel, _): &mut (&mut Position, &mut Velocity, &HeroBehavior), (last_input, next_input): (input::Input, input::Input)) {
   if next_input.contains(input::UP) && !last_input.contains(input::UP) {
-    let (x, y) = vel.to_cart();
+    let (x, _) = vel.to_cart();
     **vel = Velocity::from_cart((x, -5.0));
   }
 }
 
-fn run(&mut (_, ref mut vel, _): &mut (&mut Position, &mut Velocity, &HeroBehavior), (last_input, next_input): (input::Input, input::Input)) {
+fn run(&mut (_, ref mut vel, _): &mut (&mut Position, &mut Velocity, &HeroBehavior), (_, next_input): (input::Input, input::Input)) {
   if next_input.contains(input::RIGHT) {
-    let (x, y) = vel.to_cart();
+    let (_, y) = vel.to_cart();
     **vel = Velocity::from_cart((3.0, y));
   }
 
@@ -42,7 +41,7 @@ fn run(&mut (_, ref mut vel, _): &mut (&mut Position, &mut Velocity, &HeroBehavi
   }
 
   if next_input.contains(input::LEFT) {
-    let (x, y) = vel.to_cart();
+    let (_, y) = vel.to_cart();
     **vel = Velocity::from_cart((-3.0, y));
   }
 

@@ -1,5 +1,4 @@
 use collider::geom::Shape;
-use collider::Hitbox;
 use specs::{Component, VecStorage};
 
 #[derive(Debug)]

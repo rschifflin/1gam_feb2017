@@ -1,7 +1,3 @@
-use std::cell::{Ref, RefCell};
-use std::collections::HashMap;
-use itertools::Itertools;
-use std::iter::{Iterator, FromIterator};
 use std::fmt::Debug;
 use specs::Entity;
 
@@ -17,8 +13,6 @@ pub enum Physics {
   Collide(Entity, Entity)
 }
 
-trait EventType {}
+pub trait EventType: Debug + Clone {}
 impl EventType for Game {}
 impl EventType for Physics {}
-
-pub type Events<T: EventType + Debug + Clone> = Vec<T>;
