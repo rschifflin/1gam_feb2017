@@ -1,4 +1,3 @@
-mod collision;
 mod physical;
 mod position;
 mod sprite;
@@ -7,7 +6,10 @@ mod velocity;
 mod blast_zone;
 mod essential;
 mod game_state;
+mod deadly;
+mod checkpoint;
 pub mod behavior;
+pub mod collision;
 
 pub use self::collision::Collision;
 pub use self::physical::Physical;
@@ -18,3 +20,5 @@ pub use self::camera::Camera;
 pub use self::blast_zone::BlastZone;
 pub use self::essential::Essential;
 pub use self::game_state::GameState;
+pub use self::deadly::Deadly;
+pub use self::checkpoint::Checkpoint;

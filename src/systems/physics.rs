@@ -1,6 +1,7 @@
 use components::{Physical, Position, Collision, Velocity};
+use components::collision::CGroup;
 use specs::{Entity, System, RunArg, Join};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use systems::NamedSystem;
 use world::Context;
 use std::f64::consts::PI;
@@ -27,12 +28,13 @@ impl System<Context> for Physics {
 
     events.clear();
     let mut lookup_table: HashMap<u64, Entity> = HashMap::new();
+    let mut buffered_events = HashSet::new();
 
     for mut val in (&mut positions, &mut velocities, &physicals).iter() {
       gravitate(&mut val);
     }
 
-    let mut collider: Collider = Collider::new(12.0, COLLIDE_PADDING);
+    let mut collider: Collider<CGroup> = Collider::new(12.0, COLLIDE_PADDING);
     for (eid, ref mut pos, ref mut vel, ref col) in (&entities, &mut positions, &mut velocities, &collisions).iter() {
       let (vel_x, vel_y) = vel.to_cart();
       let hitbox_bounds = col.bounds;
@@ -46,8 +48,9 @@ impl System<Context> for Physics {
 
       let mut hitbox = Hitbox::new(PlacedShape::new(hitbox_pos, hitbox_bounds));
       hitbox.vel.pos = vec2(vel_x, vel_y);
-      lookup_table.insert(eid.get_id() as u64, eid.clone());
-      collider.add_hitbox(eid.get_id() as u64, hitbox);
+      let id = id_for(&eid, col);
+      lookup_table.insert(id, eid.clone());
+      collider.add_hitbox_with_interactivity(id, hitbox, col.group);
     }
 
     while collider.time() < 1.0 {
@@ -57,7 +60,7 @@ impl System<Context> for Physics {
         match event {
           Event::Collide => {
             let mut h1 = collider.get_hitbox(e1);
-            let h2 = collider.get_hitbox(e2);
+            let mut h2 = collider.get_hitbox(e2);
             let adjustment = h1.shape.normal_from(&h2.shape);
             h1.shape.pos.x += adjustment.dir().x * adjustment.len();
             h1.shape.pos.y += adjustment.dir().y * adjustment.len();
@@ -65,29 +68,33 @@ impl System<Context> for Physics {
             // Bump perfectly-adjacent hitboxes and kill velocity in the travelled dir
             if adjustment.dir().x != 0.0 {
               h1.vel.pos.x = 0.0;
+              h2.vel.pos.x = 0.0;
               h1.shape.pos.x += adjustment.dir().x.signum() * NUDGE_PADDING;
             }
 
             if adjustment.dir().y != 0.0 {
               h1.vel.pos.y = 0.0;
+              h2.vel.pos.y = 0.0;
               h1.shape.pos.y += adjustment.dir().y.signum() * NUDGE_PADDING;
             }
             collider.update_hitbox(e1, h1);
           },
-          Event::Separate => {
-            let eid1 = lookup_table.get(&e1).unwrap();
-            let eid2 = lookup_table.get(&e2).unwrap();
-            events.push(events::Physics::Collide(eid1.clone(), eid2.clone()))
-          }
+          Event::Separate => { buffered_events.insert((e1, e2)); }
         }
       }
     };
 
-    for (eid, ref mut pos, ref mut vel, _) in (&entities, &mut positions, &mut velocities, &collisions).iter() {
-      let hitbox = collider.get_hitbox(eid.get_id() as u64);
+    for (eid, ref mut pos, ref mut vel, ref col) in (&entities, &mut positions, &mut velocities, &collisions).iter() {
+      let hitbox = collider.get_hitbox(id_for(&eid, col));
       **vel = Velocity::from_cart((hitbox.vel.pos.x, hitbox.vel.pos.y));
       pos.x = hitbox.shape.left();
       pos.y = hitbox.shape.bottom();
+    }
+
+    for &(ref e1, ref e2) in buffered_events.iter() {
+      let eid1 = lookup_table.get(e1).unwrap();
+      let eid2 = lookup_table.get(e2).unwrap();
+      events.push(events::Physics::Collide(eid1.clone(), eid2.clone()))
     }
   }
 }
@@ -101,4 +108,9 @@ impl NamedSystem<Context> for Physics {
 fn gravitate(&mut (_, ref mut vel, _): &mut (&mut Position, &mut Velocity, &Physical)) {
   **vel = Velocity::add(vel, &GRAVITY);
   vel.speed = (vel.speed.min(MAX_SPEED) * 1000.0).round() / 1000.0;
+}
+
+fn id_for(e: &Entity, c: &Collision) -> u64 {
+  let priority = c.priority;
+  e.get_id() as u64 | ((priority as u64) << 32)
 }

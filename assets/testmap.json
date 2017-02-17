@@ -38,6 +38,28 @@
                  "width":2000,
                  "x":0,
                  "y":547
+                }, 
+                {
+                 "height":32,
+                 "id":6,
+                 "name":"Checkpoint1",
+                 "rotation":0,
+                 "type":"Checkpoint",
+                 "visible":true,
+                 "width":30,
+                 "x":226,
+                 "y":164
+                }, 
+                {
+                 "height":34,
+                 "id":7,
+                 "name":"Checkpoint2",
+                 "rotation":0,
+                 "type":"Checkpoint",
+                 "visible":true,
+                 "width":37,
+                 "x":447,
+                 "y":65
                 }],
          "opacity":1,
          "type":"objectgroup",
@@ -46,7 +68,7 @@
          "x":0,
          "y":0
         }],
- "nextobjectid":6,
+ "nextobjectid":8,
  "orientation":"orthogonal",
  "renderorder":"right-down",
  "tileheight":32,
@@ -54,7 +76,7 @@
         {
          "columns":6,
          "firstgid":1,
-         "image":"..\/..\/..\/..\/Volumes\/Tiled 0.18.1\/examples\/sewer_tileset.png",
+         "image":"..\/sewer_tileset.png",
          "imageheight":217,
          "imagewidth":192,
          "margin":0,

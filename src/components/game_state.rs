@@ -1,8 +1,9 @@
 use specs::{Component, VecStorage};
 
-#[derive(Debug)]
+#[derive(Default, Debug)]
 pub struct GameState {
   pub level: usize,
+  pub spawn: (f64, f64),
 }
 
 impl Component for GameState {

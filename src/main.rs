@@ -70,6 +70,7 @@ impl App {
     let sprites = world.read::<components::Sprite>();
     let collision = world.read::<components::Collision>();
     let cameras = world.read::<components::Camera>();
+    let checkpoints = world.read::<components::Checkpoint>();
     let blast_zones = world.read::<components::BlastZone>();
     for camera in (&cameras).iter() {
       for (pos, col) in (&positions, &collision).iter() {
@@ -85,6 +86,11 @@ impl App {
       for (pos, col, _) in (&positions, &collision, &blast_zones).iter() {
         let xform = c.transform.trans(pos.x - camera.screen.x, pos.y - camera.screen.y);
         rectangle(colors::YELLOW, [0.0, 0.0, col.bounds.dims().x, col.bounds.dims().y], xform, g);
+      };
+
+      for (pos, col, _) in (&positions, &collision, &checkpoints).iter() {
+        let xform = c.transform.trans(pos.x - camera.screen.x, pos.y - camera.screen.y);
+        rectangle(colors::PURPLE, [0.0, 0.0, col.bounds.dims().x, col.bounds.dims().y], xform, g);
       };
     }
   }

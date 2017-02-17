@@ -11,6 +11,7 @@ pub enum LayerType {
 #[derive(Debug, Deserialize, PartialEq)]
 pub enum ObjectType {
   Start,
+  Checkpoint,
   BlastZone
 }
 
