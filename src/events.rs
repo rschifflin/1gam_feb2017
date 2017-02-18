@@ -14,9 +14,10 @@ pub enum Hero {
   Checkpoint((f64, f64)),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub enum Physics {
-  Collide(Entity, Entity)
+  Collide(Entity, Entity),
+  Landed(Entity)
 }
 
 #[derive(Debug, Clone)]

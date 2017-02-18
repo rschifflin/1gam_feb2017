@@ -79,7 +79,8 @@ impl System<Context> for Director {
             if game_state.level == 1 { game_events.push(events::Game::Level2) }
             else { game_events.push(events::Game::Level1) };
           }
-        }
+        },
+        _ => ()
       }
     }
   }

@@ -1,8 +1,10 @@
 use components::{Checkpoint, Collision, Position, Velocity, Deadly};
 use components::behavior::Hero as HeroBehavior;
+use components::behavior::hero::MoveState;
 use specs::{Entity, System, RunArg, Join};
 use systems::NamedSystem;
 use world::Context;
+use systems::physics::GRAVITY;
 use input;
 use events;
 
@@ -17,11 +19,11 @@ bitflags! {
 pub struct Hero;
 impl System<Context> for Hero {
   fn run(&mut self, arg: RunArg, context: Context) {
-    let (mut positions, mut velocities, mut collisions, heroes, deadlies, checkpoints, mut hero_events, phys_events) = arg.fetch(|w| {
+    let (mut positions, mut velocities, mut collisions, mut heroes, deadlies, checkpoints, mut hero_events, phys_events) = arg.fetch(|w| {
       let pos = w.write::<Position>();
       let vel = w.write::<Velocity>();
       let col = w.write::<Collision>();
-      let heroes = w.read::<HeroBehavior>();
+      let heroes = w.write::<HeroBehavior>();
       let deadlies = w.read::<Deadly>();
       let checkpoints = w.read::<Checkpoint>();
       let hero_events = w.write_resource::<Vec<events::Hero>>();
@@ -33,15 +35,15 @@ impl System<Context> for Hero {
     //Physics event checking
     {
       let mut collide_hero_deadly = |hero: Entity, _: Entity, events: &mut Vec<events::Hero>| {
-          collisions.remove(hero);
-          events.push(events::Hero::Dead(hero));
+        collisions.remove(hero);
+        events.push(events::Hero::Dead(hero));
       };
 
       let collide_hero_checkpoint = |hero: Entity, checkpoint: Entity, events: &mut Vec<events::Hero>| {
-          positions.get(hero).map(|pos| {
-            arg.delete(checkpoint);
-            events.push(events::Hero::Checkpoint((pos.x, pos.y)));
-          });
+        positions.get(hero).map(|pos| {
+          arg.delete(checkpoint);
+          events.push(events::Hero::Checkpoint((pos.x, pos.y)));
+        });
       };
 
       for phys_event in phys_events.iter() {
@@ -66,45 +68,69 @@ impl System<Context> for Hero {
               },
               _ => ()
             }
+          },
+
+          events::Physics::Landed(e1) => {
+            heroes.get_mut(e1).and_then(|mut hero| {
+              velocities.get(e1).map(|vel| {
+                if vel.y == 0.0 { hero.move_state = (0, MoveState::Standing) }
+              })
+            });
           }
         }
       }
     }
 
     // Jump around, Jump around
-    for mut val in (&mut positions, &mut velocities, &heroes).iter() {
-      jump(&mut val, context.input.current());
+    for mut val in (&mut positions, &mut velocities, &mut heroes).iter() {
+      update(&mut val, context.input.current());
       run(&mut val, context.input.current());
     }
   }
 }
 
-fn jump(&mut (_, ref mut vel, _): &mut (&mut Position, &mut Velocity, &HeroBehavior), (last_input, next_input): (input::Input, input::Input)) {
-  if next_input.contains(input::UP) && !last_input.contains(input::UP) {
-    let (x, _) = vel.to_cart();
-    **vel = Velocity::from_cart((x, -5.0));
+fn update(&mut (_, ref mut vel, ref mut hero): &mut (&mut Position, &mut Velocity, &mut HeroBehavior), (last_input, next_input): (input::Input, input::Input)) {
+  match hero.move_state.1 {
+    MoveState::Standing => {
+      if vel.y != 0.0 { hero.move_state = (0, MoveState::Falling) }
+      else if next_input.contains(input::JUMP) && !last_input.contains(input::JUMP) {
+        hero.move_state = (0, MoveState::PreJump);
+        vel.y = -2.0
+      }
+    },
+    MoveState::PreJump => {
+      hero.move_state.0 += 1;
+
+      if vel.y > 0.0 { hero.move_state = (0, MoveState::Falling) };
+      vel.y -= 1.5 * 0.75f64.powi(hero.move_state.0 as i32);
+      if hero.move_state.0 > 15 || !next_input.contains(input::JUMP) {
+        hero.move_state = (0, MoveState::Jumping)
+      };
+    },
+    MoveState::Jumping => {
+      if vel.y < 0.0 { hero.move_state = (0, MoveState::Falling) };
+    },
+    MoveState::Falling => {
+      vel.y += GRAVITY.y;
+    }
   }
 }
 
-fn run(&mut (_, ref mut vel, _): &mut (&mut Position, &mut Velocity, &HeroBehavior), (_, next_input): (input::Input, input::Input)) {
+fn run(&mut (_, ref mut vel, _): &mut (&mut Position, &mut Velocity, &mut HeroBehavior), (_, next_input): (input::Input, input::Input)) {
   if next_input.contains(input::RIGHT) {
-    let (_, y) = vel.to_cart();
-    **vel = Velocity::from_cart((3.0, y));
+    vel.x = 3.0;
   }
 
   if !next_input.contains(input::RIGHT) {
-    let (x, y) = vel.to_cart();
-    **vel = Velocity::from_cart((x.min(0.0), y));
+    vel.x = vel.x.min(0.0)
   }
 
   if next_input.contains(input::LEFT) {
-    let (_, y) = vel.to_cart();
-    **vel = Velocity::from_cart((-3.0, y));
+    vel.x = -3.0;
   }
 
   if !next_input.contains(input::LEFT) {
-    let (x, y) = vel.to_cart();
-    **vel = Velocity::from_cart((x.max(0.0), y));
+    vel.x = vel.x.max(0.0)
   }
 }
 

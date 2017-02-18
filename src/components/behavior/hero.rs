@@ -1,20 +1,22 @@
 use specs::{Component, VecStorage};
 
-#[derive(Debug)]
-enum MoveState {
+#[derive(Debug, PartialEq)]
+pub enum MoveState {
   Standing,
-  //Jumping
+  PreJump,
+  Jumping,
+  Falling
 }
 
 #[derive(Debug)]
 pub struct Hero {
-  move_state: MoveState
+  pub move_state: (u32, MoveState)
 }
 
 impl Hero {
   pub fn new() -> Hero {
     Hero {
-      move_state: MoveState::Standing
+      move_state: (0, MoveState::Falling)
     }
   }
 }

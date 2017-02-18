@@ -1,3 +1,3 @@
-mod hero;
+pub mod hero;
 
 pub use self::hero::Hero;
