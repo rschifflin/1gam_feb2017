@@ -112,7 +112,7 @@ fn create_entities(world: &World, game_state: &mut GameState, map_file: &'static
     .with::<Camera>(Camera {
       target: hero.clone(),
       screen: Rect::new(0.0,0.0,640.0,480.0),
-      bounds: Rect::new(0.0,0.0,1920.0,1080.0)
+      bounds: Rect::new(0.0, 0.0, (map.width * map.tilewidth) as f64, (map.height * map.tileheight) as f64)
     })
     .build(); //Initial Camera
 
@@ -130,9 +130,10 @@ fn create_entities(world: &World, game_state: &mut GameState, map_file: &'static
     .with::<Velocity>(Velocity::zero())
     .build(); //Some enemy object
 
-  create_floors(world, &map);
+  create_static_geom(world, &map);
   create_blast_zone(world, &map);
   create_checkpoints(world, &map);
+  create_boundaries(world, &map);
 }
 
 fn find_start(map: &map::Map) -> (f64, f64) {
@@ -186,12 +187,11 @@ fn create_blast_zone(world: &World, map: &map::Map) {
       priority: Priority::High,
       group: CGroup::Static
     })
-    .with::<Velocity>(Velocity::zero())
-    .with::<BlastZone>(BlastZone {})
+    .with::<Deadly>(Deadly {})
     .build(); //Blast Zone
 }
 
-fn create_floors(world: &World, map: &map::Map) {
+fn create_static_geom(world: &World, map: &map::Map) {
   let (tile_w, tile_h) = (map.tilewidth as f64, map.tileheight as f64);
   map.layers
     .iter()
@@ -208,12 +208,34 @@ fn create_floors(world: &World, map: &map::Map) {
                 priority: Priority::High,
                 group: CGroup::Static
               })
-              .with::<Velocity>(Velocity::zero())
               .build(); //Floor block
           }
         })
       })
     })).unwrap_or_else(|| ());
+}
+
+fn create_boundaries(world: &World, map: &map::Map) {
+  let thickness = 32.0;
+  let map_width = (map.width * map.tilewidth) as f64;
+  let map_height = (map.height * map.tileheight) as f64;
+
+  for &(x,y,w,h) in [
+    (-thickness, 0.0, thickness, map_height), //Left Boundary
+    (map_width, 0.0, thickness, map_height), //Right Boundary
+    (-thickness, -thickness, map_width + 2.0*thickness, thickness), //Top Boundary
+    (-thickness, map_height, map_width + 2.0*thickness, thickness) //Bottom Boundary
+  ].iter() {
+    world
+      .create_later_build()
+      .with::<Position>(Position { x: x, y: y })
+      .with::<Collision>(Collision {
+        bounds: Shape::new_rect(Vec2::new(w, h)),
+        priority: Priority::High,
+        group: CGroup::Static
+      })
+      .build(); //Boundary block
+  }
 }
 
 fn create_checkpoints(world: &World, map: &map::Map) {

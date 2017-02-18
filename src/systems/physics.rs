@@ -35,7 +35,7 @@ impl System<Context> for Physics {
     }
 
     let mut collider: Collider<CGroup> = Collider::new(12.0, COLLIDE_PADDING);
-    for (eid, ref mut pos, ref mut vel, ref col) in (&entities, &mut positions, &mut velocities, &collisions).iter() {
+    for (eid, ref mut pos, ref col) in (&entities, &mut positions, &collisions).iter() {
       let hitbox_bounds = col.bounds;
       let (bounds_w, bounds_h) = {
         let dims = col.bounds.dims();
@@ -44,9 +44,9 @@ impl System<Context> for Physics {
         (w, h)
       };
       let hitbox_pos = vec2(pos.x + bounds_w/2.0, pos.y + bounds_h/2.0);
-
+      let (vel_x, vel_y) = velocities.get(eid).map(|v| (v.x, v.y)).unwrap_or_else(|| (0.0, 0.0));
       let mut hitbox = Hitbox::new(PlacedShape::new(hitbox_pos, hitbox_bounds));
-      hitbox.vel.pos = vec2(vel.x, vel.y);
+      hitbox.vel.pos = vec2(vel_x, vel_y);
       let id = id_for(&eid, col);
       lookup_table.insert(id, eid.clone());
       collider.add_hitbox_with_interactivity(id, hitbox, col.group);
@@ -92,10 +92,12 @@ impl System<Context> for Physics {
       }
     };
 
-    for (eid, ref mut pos, ref mut vel, ref col) in (&entities, &mut positions, &mut velocities, &collisions).iter() {
+    for (eid, ref mut pos, ref col) in (&entities, &mut positions, &collisions).iter() {
       let hitbox = collider.get_hitbox(id_for(&eid, col));
-      vel.x = hitbox.vel.pos.x;
-      vel.y = hitbox.vel.pos.y;
+      velocities.get_mut(eid).map(|mut vel| {
+        vel.x = hitbox.vel.pos.x;
+        vel.y = hitbox.vel.pos.y;
+      });
       pos.x = hitbox.shape.left();
       pos.y = hitbox.shape.bottom();
     }
