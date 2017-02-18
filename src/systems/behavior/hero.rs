@@ -1,10 +1,8 @@
 use components::{Checkpoint, Collision, Position, Velocity, Deadly};
 use components::behavior::Hero as HeroBehavior;
-use components::behavior::hero::MoveState;
 use specs::{Entity, System, RunArg, Join};
 use systems::NamedSystem;
 use world::Context;
-use systems::physics::GRAVITY;
 use input;
 use events;
 
@@ -73,7 +71,7 @@ impl System<Context> for Hero {
           events::Physics::Landed(e1) => {
             heroes.get_mut(e1).and_then(|mut hero| {
               velocities.get(e1).map(|vel| {
-                if vel.y == 0.0 { hero.move_state = (0, MoveState::Standing) }
+                if vel.y == 0.0 { hero.jump_state.on_landed() }
               })
             });
           }
@@ -89,31 +87,9 @@ impl System<Context> for Hero {
   }
 }
 
-fn update(&mut (_, ref mut vel, ref mut hero): &mut (&mut Position, &mut Velocity, &mut HeroBehavior), (last_input, next_input): (input::Input, input::Input)) {
-  match hero.move_state.1 {
-    MoveState::Standing => {
-      if vel.y != 0.0 { hero.move_state = (0, MoveState::Falling) }
-      else if next_input.contains(input::JUMP) && !last_input.contains(input::JUMP) {
-        hero.move_state = (0, MoveState::PreJump);
-        vel.y = -2.0
-      }
-    },
-    MoveState::PreJump => {
-      hero.move_state.0 += 1;
-
-      if vel.y > 0.0 { hero.move_state = (0, MoveState::Falling) };
-      vel.y -= 1.5 * 0.75f64.powi(hero.move_state.0 as i32);
-      if hero.move_state.0 > 15 || !next_input.contains(input::JUMP) {
-        hero.move_state = (0, MoveState::Jumping)
-      };
-    },
-    MoveState::Jumping => {
-      if vel.y < 0.0 { hero.move_state = (0, MoveState::Falling) };
-    },
-    MoveState::Falling => {
-      vel.y += GRAVITY.y;
-    }
-  }
+fn update(&mut (_, ref mut vel, ref mut hero): &mut (&mut Position, &mut Velocity, &mut HeroBehavior), inputs: (input::Input, input::Input)) {
+  hero.jump_state.update(vel.y, inputs);
+  vel.y = hero.jump_state.get_yvel();
 }
 
 fn run(&mut (_, ref mut vel, _): &mut (&mut Position, &mut Velocity, &mut HeroBehavior), (_, next_input): (input::Input, input::Input)) {

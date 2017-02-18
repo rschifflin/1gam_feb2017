@@ -1,22 +1,18 @@
 use specs::{Component, VecStorage};
-
-#[derive(Debug, PartialEq)]
-pub enum MoveState {
-  Standing,
-  PreJump,
-  Jumping,
-  Falling
-}
+use progress::Progress;
+use fsm::hero::{Jump, SingleJumpFSM, DoubleJumpFSM};
 
 #[derive(Debug)]
 pub struct Hero {
-  pub move_state: (u32, MoveState)
+  pub jump_state: Box<Jump>,
+  pub progress: Progress
 }
 
 impl Hero {
-  pub fn new() -> Hero {
+  pub fn new(progress: Progress) -> Hero {
     Hero {
-      move_state: (0, MoveState::Falling)
+      jump_state: Box::new(DoubleJumpFSM::new()),
+      progress: progress
     }
   }
 }

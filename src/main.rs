@@ -28,6 +28,8 @@ mod sound;
 mod world;
 mod input;
 mod map;
+mod progress;
+mod fsm;
 /*
 mod ui;
 */

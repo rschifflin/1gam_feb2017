@@ -56,7 +56,7 @@ impl System<Context> for Director {
         match *event {
           events::Hero::Dead(dead_hero) => {
             w.delete_later(dead_hero);
-            let new_hero = create_hero(w, game_state.spawn);
+            let new_hero = create_hero(w, game_state);
             camera_events.push(events::Camera::Switch(dead_hero, new_hero));
           },
           events::Hero::Checkpoint(new_spawn) => game_state.spawn = new_spawn
@@ -106,7 +106,7 @@ fn create_entities(world: &World, game_state: &mut GameState, map_file: &'static
     .unwrap();
   let spawn = find_start(&map);
   game_state.spawn = spawn;
-  let hero = create_hero(world, spawn);
+  let hero = create_hero(world, game_state);
   world
     .create_later_build()
     .with::<Camera>(Camera {
@@ -150,7 +150,10 @@ fn find_start(map: &map::Map) -> (f64, f64) {
     }).unwrap()
 }
 
-fn create_hero(world: &World, (start_x, start_y): (f64, f64)) -> Entity {
+fn create_hero(world: &World, game_state: &GameState) -> Entity {
+  let (start_x, start_y) = game_state.spawn;
+  let progress = game_state.progress;
+
   world
     .create_later_build()
     .with::<Position>(Position { x: start_x, y: start_y })
@@ -161,7 +164,7 @@ fn create_hero(world: &World, (start_x, start_y): (f64, f64)) -> Entity {
     })
     .with::<Physical>(Physical {})
     .with::<Sprite>(Sprite {})
-    .with::<Hero>(Hero::new())
+    .with::<Hero>(Hero::new(progress))
     .with::<Velocity>(Velocity::zero())
     .build() //Hero
 }
