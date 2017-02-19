@@ -120,12 +120,12 @@ fn create_entities(world: &World, game_state: &mut GameState, map_file: &'static
     .create_later_build()
     .with::<Position>(Position { x: 30.0, y: 30.0 })
     .with::<Collision>(Collision {
-      bounds: Shape::new_rect(Vec2::new(16.0, 16.0)),
+      bounds: Shape::new_rect(Vec2::new(32.0, 128.0)),
       priority: Priority::Low,
       group: CGroup::Enemy
     })
     .with::<Physical>(Physical {})
-    .with::<Sprite>(Sprite {})
+    .with::<Sprite>(Sprite::Bird)
     .with::<Deadly>(Deadly {})
     .with::<Velocity>(Velocity::zero())
     .build(); //Some enemy object
@@ -158,12 +158,12 @@ fn create_hero(world: &World, game_state: &GameState) -> Entity {
     .create_later_build()
     .with::<Position>(Position { x: start_x, y: start_y })
     .with::<Collision>(Collision {
-      bounds: Shape::new_rect(Vec2::new(16.0, 16.0)),
+      bounds: Shape::new_rect(Vec2::new(24.0, 24.0)),
       priority: Priority::Low,
       group: CGroup::Friendly
     })
     .with::<Physical>(Physical {})
-    .with::<Sprite>(Sprite {})
+    .with::<Sprite>(Sprite::Hero)
     .with::<Hero>(Hero::new(progress))
     .with::<Velocity>(Velocity::zero())
     .build() //Hero
@@ -190,7 +190,7 @@ fn create_blast_zone(world: &World, map: &map::Map) {
       priority: Priority::High,
       group: CGroup::Static
     })
-    .with::<Deadly>(Deadly {})
+    .with::<BlastZone>(BlastZone {})
     .build(); //Blast Zone
 }
 

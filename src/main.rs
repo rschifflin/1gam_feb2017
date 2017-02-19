@@ -38,6 +38,7 @@ mod ui;
 use piston::window::WindowSettings;
 use piston::input::*;
 use glium_graphics::{Glium2d, GliumGraphics, OpenGL, GliumWindow};
+use glium_graphics::Texture;
 use glium::{Surface, Frame};
 use specs::{/*RunArg,*/ Join, World};
 //use futures::sync::mpsc::channel;
@@ -52,22 +53,21 @@ pub struct App {
 }
 
 impl App {
-  fn render(&mut self, args: &RenderArgs, window: &mut glium_graphics::GliumWindow) {
+  fn render(&mut self, args: &RenderArgs, window: &mut glium_graphics::GliumWindow, texture: &Texture) {
     let world = self.planner.mut_world();
     //let ui = &mut self.ui;
     let mut frame = window.draw();
     frame.clear_color(0.0, 0.0, 1.0, 1.0);
     self.gl.draw(&mut frame, args.viewport(), |c, g| {
       //ui.draw(c, g);
-      Self::render_gfx(c, g, world);
+      Self::render_gfx(c, g, texture, world);
     });
 
     frame.finish().unwrap();
   }
 
-  fn render_gfx(c: graphics::Context, g: &mut GliumGraphics<Frame>, world: &mut World) {
+  fn render_gfx(c: graphics::Context, g: &mut GliumGraphics<Frame>, texture: &Texture, world: &mut World) {
     use graphics::{rectangle, Transformed};
-
     let positions = world.read::<components::Position>();
     let sprites = world.read::<components::Sprite>();
     let collision = world.read::<components::Collision>();
@@ -75,14 +75,16 @@ impl App {
     let checkpoints = world.read::<components::Checkpoint>();
     let blast_zones = world.read::<components::BlastZone>();
     for camera in (&cameras).iter() {
-      for (pos, col) in (&positions, &collision).iter() {
+      for (pos, col, _) in (&positions, &collision, !&sprites).iter() {
         let xform = c.transform.trans(pos.x - camera.screen.x, pos.y - camera.screen.y);
         rectangle(colors::RED, [0.0, 0.0, col.bounds.dims().x, col.bounds.dims().y], xform, g);
       };
 
-      for (pos, _) in (&positions, &sprites).iter() {
+      for (pos, sprite) in (&positions, &sprites).iter() {
+        let graphic = sprite.as_image();
+        let draw_state = graphics::DrawState::default();
         let xform = c.transform.trans(pos.x - camera.screen.x, pos.y - camera.screen.y);
-        rectangle(colors::GREEN, [0.0, 0.0, 16.0, 16.0], xform, g);
+        graphic.draw_tri(texture, &draw_state, xform, g);
       };
 
       for (pos, col, _) in (&positions, &collision, &blast_zones).iter() {
@@ -185,13 +187,14 @@ fn main() {
     time_since_update: 0.0
   };
 
+  let texture: Texture = glium_graphics::Texture::from_path(&mut window, "./assets/bird_and_blob.png", glium_graphics::Flip::None, &glium_graphics::TextureSettings::new()).unwrap();
   while let Some(e) = window.next() {
     if let &Event::Input(ref i) = &e {
       app.input(i);
     }
     e.update(|args| app.update(&args));
     e.render(|args| {
-      app.render(&args, &mut window);
+      app.render(&args, &mut window, &texture);
     });
   }
 }
