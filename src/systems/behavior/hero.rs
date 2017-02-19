@@ -92,22 +92,11 @@ fn update(&mut (_, ref mut vel, ref mut hero): &mut (&mut Position, &mut Velocit
   vel.y = hero.jump_state.get_yvel();
 }
 
-fn run(&mut (_, ref mut vel, _): &mut (&mut Position, &mut Velocity, &mut HeroBehavior), (_, next_input): (input::Input, input::Input)) {
-  if next_input.contains(input::RIGHT) {
-    vel.x = 3.0;
-  }
-
-  if !next_input.contains(input::RIGHT) {
-    vel.x = vel.x.min(0.0)
-  }
-
-  if next_input.contains(input::LEFT) {
-    vel.x = -3.0;
-  }
-
-  if !next_input.contains(input::LEFT) {
-    vel.x = vel.x.max(0.0)
-  }
+fn run(&mut (_, ref mut vel, ref mut hero): &mut (&mut Position, &mut Velocity, &mut HeroBehavior), inputs: (input::Input, input::Input)) {
+  hero.run_state.update(vel.x, vel.y, inputs);
+  let (new_xvel, new_yvel) = hero.run_state.get_vel();
+  vel.x = new_xvel;
+  vel.y = new_yvel;
 }
 
 impl NamedSystem<Context> for Hero {
