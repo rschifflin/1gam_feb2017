@@ -48,6 +48,13 @@ impl System<Context> for Director {
             delete_entities(w);
             create_entities(w, &mut game_state, "./assets/testmap2.json");
           }
+          events::Game::Level3 => {
+            game_state.level = 3;
+            phys_events.clear();
+            camera_events.clear();
+            delete_entities(w);
+            create_entities(w, &mut game_state, "./assets/testmap3.json");
+          }
         }
       }
 
@@ -76,8 +83,11 @@ impl System<Context> for Director {
           let (h1, h2) = (heroes.get(e1).is_some(), heroes.get(e2).is_some());
           let (b1, b2) = (blast_zones.get(e1).is_some(), blast_zones.get(e2).is_some());
           if (h1 && b2) || (h2 && b1) {
-            if game_state.level == 1 { game_events.push(events::Game::Level2) }
-            else { game_events.push(events::Game::Level1) };
+            match game_state.level {
+              1 => { game_events.push(events::Game::Level2) },
+              2 => { game_events.push(events::Game::Level3) },
+              _ => { game_events.push(events::Game::Level1) }
+            };
           }
         },
         _ => ()
