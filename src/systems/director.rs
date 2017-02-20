@@ -130,7 +130,7 @@ fn create_entities(world: &World, game_state: &mut GameState, map_file: &'static
     .create_later_build()
     .with::<Position>(Position { x: 30.0, y: 30.0 })
     .with::<Collision>(Collision {
-      bounds: Shape::new_rect(Vec2::new(32.0, 128.0)),
+      bounds: Shape::new_rect(Vec2::new(64.0, 128.0)),
       priority: Priority::Low,
       group: CGroup::Enemy
     })
@@ -168,7 +168,7 @@ fn create_hero(world: &World, game_state: &GameState) -> Entity {
     .create_later_build()
     .with::<Position>(Position { x: start_x, y: start_y })
     .with::<Collision>(Collision {
-      bounds: Shape::new_rect(Vec2::new(24.0, 24.0)),
+      bounds: Shape::new_rect(Vec2::new(30.0, 30.0)),
       priority: Priority::Low,
       group: CGroup::Friendly
     })

@@ -29,6 +29,7 @@ impl System<Context> for Hero {
       (pos, vel, col, heroes, deadlies, checkpoints, hero_events, phys_events)
     });
     hero_events.clear();
+    let input = context.input.current();
 
     //Physics event checking
     {
@@ -74,6 +75,12 @@ impl System<Context> for Hero {
                 if vel.y == 0.0 { hero.jump_state.on_landed() }
               })
             });
+          },
+
+          events::Physics::Bonked(e1) => {
+            heroes.get_mut(e1).map(|hero| {
+              if input.1.contains(input::JUMP) { hero.hang_state.on_bonked() }
+            });
           }
         }
       }
@@ -81,18 +88,18 @@ impl System<Context> for Hero {
 
     // Jump around, Jump around
     for mut val in (&mut positions, &mut velocities, &mut heroes).iter() {
-      update(&mut val, context.input.current());
-      run(&mut val, context.input.current());
+      update(&mut val, input);
     }
   }
 }
 
 fn update(&mut (_, ref mut vel, ref mut hero): &mut (&mut Position, &mut Velocity, &mut HeroBehavior), inputs: (input::Input, input::Input)) {
+  hero.hang_state.update(vel.y);
+  vel.y = hero.hang_state.get_yvel();
+
   hero.jump_state.update(vel.y, inputs);
   vel.y = hero.jump_state.get_yvel();
-}
 
-fn run(&mut (_, ref mut vel, ref mut hero): &mut (&mut Position, &mut Velocity, &mut HeroBehavior), inputs: (input::Input, input::Input)) {
   hero.run_state.update(vel.x, vel.y, inputs);
   let (new_xvel, new_yvel) = hero.run_state.get_vel();
   vel.x = new_xvel;

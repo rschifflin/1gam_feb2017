@@ -81,10 +81,9 @@ impl App {
       };
 
       for (pos, sprite) in (&positions, &sprites).iter() {
-        let graphic = sprite.as_image();
+        let graphic = sprite.as_image(pos.x - camera.screen.x, pos.y - camera.screen.y);
         let draw_state = graphics::DrawState::default();
-        let xform = c.transform.trans(pos.x - camera.screen.x, pos.y - camera.screen.y);
-        graphic.draw_tri(texture, &draw_state, xform, g);
+        graphic.draw_tri(texture, &draw_state, c.transform, g);
       };
 
       for (pos, col, _) in (&positions, &collision, &blast_zones).iter() {

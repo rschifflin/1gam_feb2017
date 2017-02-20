@@ -18,7 +18,8 @@ pub enum Hero {
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub enum Physics {
   Collide(Entity, Entity),
-  Landed(Entity)
+  Landed(Entity),
+  Bonked(Entity)
 }
 
 #[derive(Debug, Clone)]

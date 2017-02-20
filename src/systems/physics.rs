@@ -72,10 +72,14 @@ impl System<Context> for Physics {
             }
 
             if adjustment.dir().y != 0.0 {
-              let eid =
-                if adjustment.dir().y.is_sign_negative() { lookup_table.get(&e1).unwrap() }
-                else { lookup_table.get(&e2).unwrap() };
-              buffered_events.insert(events::Physics::Landed(eid.clone()));
+              let (landed_eid, bonked_eid) =
+                if adjustment.dir().y.is_sign_negative() {
+                  (lookup_table.get(&e1).unwrap(), lookup_table.get(&e2).unwrap())
+                } else {
+                  (lookup_table.get(&e2).unwrap(), lookup_table.get(&e1).unwrap())
+                };
+              buffered_events.insert(events::Physics::Landed(landed_eid.clone()));
+              buffered_events.insert(events::Physics::Bonked(bonked_eid.clone()));
 
               h1.vel.pos.y = 0.0;
               h2.vel.pos.y = 0.0;
