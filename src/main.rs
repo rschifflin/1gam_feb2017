@@ -30,9 +30,7 @@ mod input;
 mod map;
 mod progress;
 mod fsm;
-/*
 mod ui;
-*/
 
 
 use piston::window::WindowSettings;
@@ -45,7 +43,7 @@ use specs::{/*RunArg,*/ Join, World};
 //use sound::{SoundEvent, spawn_audio_thread};
 
 pub struct App {
-  //ui: ui::Ui, //Conrod drawing context
+  ui: ui::Ui, //Conrod drawing context
   gl: Glium2d, // OpenGL drawing backend.
   context: world::Context,
   planner: specs::Planner<world::Context>,
@@ -55,11 +53,11 @@ pub struct App {
 impl App {
   fn render(&mut self, args: &RenderArgs, window: &mut glium_graphics::GliumWindow, texture: &Texture) {
     let world = self.planner.mut_world();
-    //let ui = &mut self.ui;
+    let ui = &mut self.ui;
     let mut frame = window.draw();
     frame.clear_color(0.0, 0.0, 1.0, 1.0);
     self.gl.draw(&mut frame, args.viewport(), |c, g| {
-      //ui.draw(c, g);
+      ui.draw(c, g);
       Self::render_gfx(c, g, texture, world);
     });
 
@@ -74,6 +72,7 @@ impl App {
     let cameras = world.read::<components::Camera>();
     let checkpoints = world.read::<components::Checkpoint>();
     let blast_zones = world.read::<components::BlastZone>();
+    let game_state = world.read::<components::GameState>();
     for camera in (&cameras).iter() {
       for (pos, col, _) in (&positions, &collision, !&sprites).iter() {
         let xform = c.transform.trans(pos.x - camera.screen.x, pos.y - camera.screen.y);
@@ -95,6 +94,12 @@ impl App {
         let xform = c.transform.trans(pos.x - camera.screen.x, pos.y - camera.screen.y);
         rectangle(colors::PURPLE, [0.0, 0.0, col.bounds.dims().x, col.bounds.dims().y], xform, g);
       };
+
+      game_state.iter().next().map(|state| {
+        /*
+         * Draw progress indicator
+        */
+      });
     }
   }
 
@@ -133,6 +138,7 @@ impl App {
   }
 
   fn update(&mut self, &UpdateArgs { dt }: &UpdateArgs) {
+    self.ui.update();
     self.time_since_update += dt;
     if self.time_since_update > 0.0166666 {
       self.planner.dispatch(self.context.clone());
@@ -158,6 +164,7 @@ fn main() {
     .build()
     .unwrap();
 
+  let mut ui = ui::Ui::new(&mut window);
   // Create a new game and run it.
   let mut world = specs::World::new();
   world::register(&mut world);
@@ -167,11 +174,6 @@ fn main() {
   systems::plan_system(&mut planner, systems::behavior::Hero, 10);
   systems::plan_system(&mut planner, systems::physics::Physics, 20);
   systems::plan_system(&mut planner, systems::camera::Camera, 30);
-  /*
-  systems::plan_system(&mut planner, systems::control::Player, 0);
-    let mut ui = ui::Ui::new(&mut window);
-    ui.update();
-  */
 
   let context = world::Context {
     input: input::InputBuffer::new(),
@@ -179,7 +181,7 @@ fn main() {
   };
 
   let mut app = App {
-    //ui: ui,
+    ui: ui,
     gl: Glium2d::new(opengl, &window),
     context: context,
     planner: planner,

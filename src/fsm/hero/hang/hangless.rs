@@ -1,6 +1,4 @@
-use input::{self, Input};
 use super::Hang;
-use super::constants::*;
 
 #[derive(Debug, PartialEq)]
 pub struct HanglessFSM {

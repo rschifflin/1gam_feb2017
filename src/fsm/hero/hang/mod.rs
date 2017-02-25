@@ -1,5 +1,4 @@
 use std::fmt::Debug;
-use input::Input;
 pub use self::hang::HangFSM;
 pub use self::hangless::HanglessFSM;
 

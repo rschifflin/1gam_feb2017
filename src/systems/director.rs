@@ -12,6 +12,7 @@ use collider::geom::Vec2;
 use geom::Rect;
 use serde_json;
 use std::fs::File;
+use progress::Progress;
 use map;
 use events;
 
@@ -36,6 +37,7 @@ impl System<Context> for Director {
           }
           events::Game::Level1 => {
             game_state.level = 1;
+            game_state.progress = Progress::from_bits_truncate((game_state.progress.bits() << 1) | 1);
             phys_events.clear();
             camera_events.clear();
             delete_entities(w);
@@ -43,6 +45,7 @@ impl System<Context> for Director {
           },
           events::Game::Level2 => {
             game_state.level = 2;
+            game_state.progress = Progress::from_bits_truncate((game_state.progress.bits() << 1) | 1);
             phys_events.clear();
             camera_events.clear();
             delete_entities(w);
@@ -50,6 +53,7 @@ impl System<Context> for Director {
           }
           events::Game::Level3 => {
             game_state.level = 3;
+            game_state.progress = Progress::from_bits_truncate((game_state.progress.bits() << 1) | 1);
             phys_events.clear();
             camera_events.clear();
             delete_entities(w);

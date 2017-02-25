@@ -9,7 +9,7 @@ piston-float = "0.2.0"
 piston2d-graphics = "0.20.0"
 glium = "0.16.0"
 piston2d-glium_graphics = "0.36.0"
-conrod = {version = "0.51.1", features = ["glium"]}
+conrod = {version = "0.49.0", features = ["glium"]}
 specs = "0.7.1"
 cpal = {git = "https://github.com/rschifflin/cpal"}
 collider = "0.2.0"
