@@ -1,7 +1,11 @@
-use specs::World;
+use specs::{Entity, World};
 use components::*;
 use components::behavior::*;
 use events;
+use systems::physics::{COLLIDE_GRANULARITY, COLLIDE_PADDING};
+use collider::Collider;
+use components::collision::CGroup;
+use std::collections::HashMap;
 
 mod context;
 pub use self::context::Context;
@@ -18,6 +22,7 @@ pub fn register(world: &mut World) {
   world.register::<GameState>();
   world.register::<Deadly>();
   world.register::<Checkpoint>();
+  world.register::<StaticGeom>();
 
   world //Initial Game State
     .create_now()
@@ -33,6 +38,10 @@ pub fn register(world: &mut World) {
 
   let camera_events: Vec<events::Camera> = vec![];
   world.add_resource(camera_events);
+
+  let collider: Collider<CGroup> = Collider::new(COLLIDE_GRANULARITY, COLLIDE_PADDING);
+  let collider_lookup: HashMap<u64, Entity> = HashMap::new();
+  world.add_resource((collider, collider_lookup));
 
   let mut game_events: Vec<events::Game> = vec![];
   game_events.push(events::Game::Init);

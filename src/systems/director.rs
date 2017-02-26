@@ -1,20 +1,22 @@
 use components;
-use specs::{System, RunArg, Join};
+use specs::{Entity, World, System, RunArg, Join};
 use systems::NamedSystem;
 use world::Context;
 use itertools::Itertools;
-use specs::{Entity, World};
 use components::*;
 use components::collision::{Priority, CGroup};
 use components::behavior::*;
-use collider::geom::Shape;
-use collider::geom::Vec2;
+use collider::geom::{PlacedShape, Shape, Vec2, vec2};
+use collider::{Collider, Hitbox};
 use geom::Rect;
 use serde_json;
+use systems::physics::{COLLIDE_GRANULARITY, COLLIDE_PADDING};
 use std::fs::File;
+use std::collections::HashMap;
 use progress::Progress;
 use map;
 use events;
+use systems;
 
 pub struct Director;
 
@@ -27,6 +29,7 @@ impl System<Context> for Director {
       let mut camera_events = w.write_resource::<Vec<events::Camera>>();
       let mut game_events = w.write_resource::<Vec<events::Game>>();
       let mut phys_events = w.write_resource::<Vec<events::Physics>>();
+      let mut static_data = w.write_resource::<(Collider<CGroup>, HashMap<u64, Entity>)>();
       let old_events = game_events.clone();
       game_events.clear();
       for event in old_events.iter() {
@@ -41,7 +44,7 @@ impl System<Context> for Director {
             phys_events.clear();
             camera_events.clear();
             delete_entities(w);
-            create_entities(w, &mut game_state, "./assets/testmap.json");
+            create_entities(w, &mut game_state, &mut static_data, "./assets/testmap.json");
           },
           events::Game::Level2 => {
             game_state.level = 2;
@@ -49,7 +52,7 @@ impl System<Context> for Director {
             phys_events.clear();
             camera_events.clear();
             delete_entities(w);
-            create_entities(w, &mut game_state, "./assets/testmap2.json");
+            create_entities(w, &mut game_state, &mut static_data, "./assets/testmap2.json");
           }
           events::Game::Level3 => {
             game_state.level = 3;
@@ -57,7 +60,7 @@ impl System<Context> for Director {
             phys_events.clear();
             camera_events.clear();
             delete_entities(w);
-            create_entities(w, &mut game_state, "./assets/testmap3.json");
+            create_entities(w, &mut game_state, &mut static_data, "./assets/testmap3.json");
           }
         }
       }
@@ -113,7 +116,11 @@ fn delete_entities(world: &World) {
   };
 }
 
-fn create_entities(world: &World, game_state: &mut GameState, map_file: &'static str) {
+fn create_entities(world: &World, game_state: &mut GameState, &mut (ref mut collider, ref mut lookup): &mut (Collider<CGroup>, HashMap<u64, Entity>), map_file: &'static str) {
+  //Empty the statics
+  *collider = Collider::new(COLLIDE_GRANULARITY, COLLIDE_PADDING);
+  lookup.clear();
+
   let map: map::Map = File::open(map_file)
     .map_err(|e| e.into())
     .and_then(serde_json::from_reader)
@@ -144,10 +151,10 @@ fn create_entities(world: &World, game_state: &mut GameState, map_file: &'static
     .with::<Velocity>(Velocity::zero())
     .build(); //Some enemy object
 
-  create_static_geom(world, &map);
+  create_static_geom(world, &map, collider, lookup);
+  create_boundaries(world, &map, collider, lookup);
   create_blast_zone(world, &map);
   create_checkpoints(world, &map);
-  create_boundaries(world, &map);
 }
 
 fn find_start(map: &map::Map) -> (f64, f64) {
@@ -208,7 +215,7 @@ fn create_blast_zone(world: &World, map: &map::Map) {
     .build(); //Blast Zone
 }
 
-fn create_static_geom(world: &World, map: &map::Map) {
+fn create_static_geom(world: &World, map: &map::Map, collider: &mut Collider<CGroup>, lookup: &mut HashMap<u64, Entity>) {
   let (tile_w, tile_h) = (map.tilewidth as f64, map.tileheight as f64);
   map.layers
     .iter()
@@ -217,22 +224,39 @@ fn create_static_geom(world: &World, map: &map::Map) {
       data.chunks(map.height).enumerate().foreach(|(row_index, row)| {
         row.iter().enumerate().foreach(|(col_index, id)| {
           if *id == 7 {
-            world
+            let pos = Position { x: col_index as f64 * tile_w, y: row_index as f64 * tile_h };
+            let col = Collision {
+              bounds: Shape::new_rect(Vec2::new(tile_w, tile_h)),
+              priority: Priority::High,
+              group: CGroup::Static
+            };
+            let (priority, group) = (col.priority, col.group);
+            let hitbox_bounds = col.bounds;
+            let (bounds_w, bounds_h) = {
+              let dims = col.bounds.dims();
+              let w = dims.x;
+              let h = dims.y;
+              (w, h)
+            };
+            let hitbox_pos = vec2(pos.x + bounds_w/2.0, pos.y + bounds_h/2.0);
+            let mut hitbox = Hitbox::new(PlacedShape::new(hitbox_pos, hitbox_bounds));
+            hitbox.vel.pos = vec2(0.0, 0.0);
+            let eid = world
               .create_later_build()
-              .with::<Position>(Position { x: col_index as f64 * tile_w, y: row_index as f64 * tile_h })
-              .with::<Collision>(Collision {
-                bounds: Shape::new_rect(Vec2::new(tile_w, tile_h)),
-                priority: Priority::High,
-                group: CGroup::Static
-              })
+              .with::<Position>(pos)
+              .with::<Collision>(col)
+              .with::<StaticGeom>(StaticGeom {})
               .build(); //Floor block
+            let id = systems::physics::id_for(&eid, priority);
+            lookup.insert(id, eid);
+            collider.add_hitbox_with_interactivity(id, hitbox, group);
           }
         })
       })
     })).unwrap_or_else(|| ());
 }
 
-fn create_boundaries(world: &World, map: &map::Map) {
+fn create_boundaries(world: &World, map: &map::Map, collider: &mut Collider<CGroup>, lookup: &mut HashMap<u64, Entity>) {
   let thickness = 32.0;
   let map_width = (map.width * map.tilewidth) as f64;
   let map_height = (map.height * map.tileheight) as f64;
@@ -243,15 +267,33 @@ fn create_boundaries(world: &World, map: &map::Map) {
     (-thickness, -thickness, map_width + 2.0*thickness, thickness), //Top Boundary
     (-thickness, map_height, map_width + 2.0*thickness, thickness) //Bottom Boundary
   ].iter() {
-    world
+
+    let pos = Position { x: x, y: y };
+    let col = Collision {
+      bounds: Shape::new_rect(Vec2::new(w, h)),
+      priority: Priority::High,
+      group: CGroup::Static
+    };
+    let (priority, group) = (col.priority, col.group);
+    let hitbox_bounds = col.bounds;
+    let (bounds_w, bounds_h) = {
+      let dims = col.bounds.dims();
+      let w = dims.x;
+      let h = dims.y;
+      (w, h)
+    };
+    let hitbox_pos = vec2(pos.x + bounds_w/2.0, pos.y + bounds_h/2.0);
+    let mut hitbox = Hitbox::new(PlacedShape::new(hitbox_pos, hitbox_bounds));
+    hitbox.vel.pos = vec2(0.0, 0.0);
+    let eid = world
       .create_later_build()
-      .with::<Position>(Position { x: x, y: y })
-      .with::<Collision>(Collision {
-        bounds: Shape::new_rect(Vec2::new(w, h)),
-        priority: Priority::High,
-        group: CGroup::Static
-      })
+      .with::<Position>(pos)
+      .with::<Collision>(col)
+      .with::<StaticGeom>(StaticGeom {})
       .build(); //Boundary block
+    let id = systems::physics::id_for(&eid, priority);
+    lookup.insert(id, eid);
+    collider.add_hitbox_with_interactivity(id, hitbox, group);
   }
 }
 

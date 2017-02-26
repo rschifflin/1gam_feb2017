@@ -8,6 +8,7 @@ mod essential;
 mod game_state;
 mod deadly;
 mod checkpoint;
+mod static_geom;
 pub mod behavior;
 pub mod collision;
 
@@ -22,3 +23,4 @@ pub use self::essential::Essential;
 pub use self::game_state::GameState;
 pub use self::deadly::Deadly;
 pub use self::checkpoint::Checkpoint;
+pub use self::static_geom::StaticGeom;
