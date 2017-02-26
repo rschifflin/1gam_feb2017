@@ -146,7 +146,7 @@ fn create_entities(world: &World, game_state: &mut GameState, &mut (ref mut coll
       group: CGroup::Enemy
     })
     .with::<Physical>(Physical {})
-    .with::<Sprite>(Sprite::Bird)
+    .with::<Sprite>(Sprite::new(Graphic::Bird))
     .with::<Deadly>(Deadly {})
     .with::<Velocity>(Velocity::zero())
     .build(); //Some enemy object
@@ -184,7 +184,7 @@ fn create_hero(world: &World, game_state: &GameState) -> Entity {
       group: CGroup::Friendly
     })
     .with::<Physical>(Physical {})
-    .with::<Sprite>(Sprite::Hero)
+    .with::<Sprite>(Sprite::new(Graphic::Hero))
     .with::<Hero>(Hero::new(progress))
     .with::<Velocity>(Velocity::zero())
     .build() //Hero

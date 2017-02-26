@@ -1,4 +1,4 @@
-use components::{Checkpoint, Collision, Position, Velocity, Deadly};
+use components::{Checkpoint, Collision, Position, Velocity, Deadly, Sprite};
 use components::behavior::Hero as HeroBehavior;
 use specs::{Entity, System, RunArg, Join};
 use systems::NamedSystem;
@@ -17,16 +17,17 @@ bitflags! {
 pub struct Hero;
 impl System<Context> for Hero {
   fn run(&mut self, arg: RunArg, context: Context) {
-    let (mut positions, mut velocities, mut collisions, mut heroes, deadlies, checkpoints, mut hero_events, phys_events) = arg.fetch(|w| {
+    let (mut positions, mut velocities, mut collisions, mut sprites, mut heroes, deadlies, checkpoints, mut hero_events, phys_events) = arg.fetch(|w| {
       let pos = w.write::<Position>();
       let vel = w.write::<Velocity>();
       let col = w.write::<Collision>();
+      let sprites = w.write::<Sprite>();
       let heroes = w.write::<HeroBehavior>();
       let deadlies = w.read::<Deadly>();
       let checkpoints = w.read::<Checkpoint>();
       let hero_events = w.write_resource::<Vec<events::Hero>>();
       let phys_events = w.read_resource::<Vec<events::Physics>>();
-      (pos, vel, col, heroes, deadlies, checkpoints, hero_events, phys_events)
+      (pos, vel, col, sprites, heroes, deadlies, checkpoints, hero_events, phys_events)
     });
     hero_events.clear();
     let input = context.input.current();
@@ -87,13 +88,13 @@ impl System<Context> for Hero {
     }
 
     // Jump around, Jump around
-    for mut val in (&mut positions, &mut velocities, &mut heroes).iter() {
+    for mut val in (&mut positions, &mut velocities, &mut sprites, &mut heroes).iter() {
       update(&mut val, input);
     }
   }
 }
 
-fn update(&mut (_, ref mut vel, ref mut hero): &mut (&mut Position, &mut Velocity, &mut HeroBehavior), inputs: (input::Input, input::Input)) {
+fn update(&mut (_, ref mut vel, ref mut sprite, ref mut hero): &mut (&mut Position, &mut Velocity, &mut Sprite, &mut HeroBehavior), inputs: (input::Input, input::Input)) {
   hero.hang_state.update(vel.y);
   vel.y = hero.hang_state.get_yvel();
 
@@ -104,6 +105,12 @@ fn update(&mut (_, ref mut vel, ref mut hero): &mut (&mut Position, &mut Velocit
   let (new_xvel, new_yvel) = hero.run_state.get_vel();
   vel.x = new_xvel;
   vel.y = new_yvel;
+
+  if vel.x < 0.0 {
+    sprite.flip(true);
+  } else if vel.x > 0.0 {
+    sprite.flip(false);
+  }
 }
 
 impl NamedSystem<Context> for Hero {

@@ -174,6 +174,7 @@ fn main() {
   systems::plan_system(&mut planner, systems::behavior::Hero, 10);
   systems::plan_system(&mut planner, systems::physics::Physics, 20);
   systems::plan_system(&mut planner, systems::camera::Camera, 30);
+  systems::plan_system(&mut planner, systems::sprite::Sprite, 30);
 
   let context = world::Context {
     input: input::InputBuffer::new(),
