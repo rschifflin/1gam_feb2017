@@ -1,13 +1,16 @@
 mod hero;
 mod bird;
+mod note;
 
 use graphics;
 use specs::{Component, VecStorage};
+pub use self::note::NoteType;
 
 #[derive(Debug, Copy, Clone)]
 pub enum Graphic {
   Hero,
-  Bird
+  Bird,
+  Note(note::NoteType),
 }
 
 pub struct Sprite {
@@ -37,10 +40,11 @@ impl Sprite {
     self.flip = flip;
   }
 
-  pub fn as_image(&self, x: f64, y: f64) -> graphics::Image {
+  pub fn as_image(&self, x: f64, y: f64) -> Option<graphics::Image> {
     match self.graphic {
-      Graphic::Hero => hero::draw(self.frame, self.flip, x, y),
-      Graphic::Bird => bird::draw(self.frame, self.flip, x, y)
+      Graphic::Hero => hero::draw(self, x, y),
+      Graphic::Bird => bird::draw(self, x, y),
+      Graphic::Note(note_type) => note::draw(self, note_type, x, y)
     }
   }
 }

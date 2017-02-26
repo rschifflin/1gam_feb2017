@@ -80,9 +80,10 @@ impl App {
       };
 
       for (pos, sprite) in (&positions, &sprites).iter() {
-        let graphic = sprite.as_image(pos.x - camera.screen.x, pos.y - camera.screen.y);
-        let draw_state = graphics::DrawState::default();
-        graphic.draw_tri(texture, &draw_state, c.transform, g);
+        sprite.as_image(pos.x - camera.screen.x, pos.y - camera.screen.y).map(|graphic| {
+          let draw_state = graphics::DrawState::default();
+          graphic.draw_tri(texture, &draw_state, c.transform, g);
+        });
       };
 
       for (pos, col, _) in (&positions, &collision, &blast_zones).iter() {
@@ -175,6 +176,7 @@ fn main() {
   systems::plan_system(&mut planner, systems::physics::Physics, 20);
   systems::plan_system(&mut planner, systems::camera::Camera, 30);
   systems::plan_system(&mut planner, systems::sprite::Sprite, 30);
+  systems::plan_system(&mut planner, systems::song::Song, 30);
 
   let context = world::Context {
     input: input::InputBuffer::new(),

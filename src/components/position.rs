@@ -1,6 +1,6 @@
 use specs::{Component, VecStorage};
 
-#[derive(Debug)]
+#[derive(Debug, Default, Copy, Clone)]
 pub struct Position {
   pub x: f64,
   pub y: f64

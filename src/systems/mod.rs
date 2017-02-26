@@ -4,6 +4,7 @@ pub mod behavior;
 pub mod camera;
 pub mod director;
 pub mod sprite;
+pub mod song;
 
 pub trait NamedSystem<C>: System<C> {
   fn name(&self) -> &'static str;

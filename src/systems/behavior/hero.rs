@@ -1,6 +1,6 @@
-use components::{Checkpoint, Collision, Position, Velocity, Deadly, Sprite};
+use components::{Checkpoint, Collision, Position, Velocity, Deadly, Sprite, Song};
 use components::behavior::Hero as HeroBehavior;
-use specs::{Entity, System, RunArg, Join};
+use specs::{World, Entity, Entities, System, RunArg, Join};
 use systems::NamedSystem;
 use world::Context;
 use input;
@@ -17,17 +17,18 @@ bitflags! {
 pub struct Hero;
 impl System<Context> for Hero {
   fn run(&mut self, arg: RunArg, context: Context) {
-    let (mut positions, mut velocities, mut collisions, mut sprites, mut heroes, deadlies, checkpoints, mut hero_events, phys_events) = arg.fetch(|w| {
+    let (entities, mut positions, mut velocities, mut collisions, mut songs, mut sprites, mut heroes, deadlies, checkpoints, mut hero_events, phys_events) = arg.fetch(|w| {
       let pos = w.write::<Position>();
       let vel = w.write::<Velocity>();
       let col = w.write::<Collision>();
+      let songs = w.write::<Song>();
       let sprites = w.write::<Sprite>();
       let heroes = w.write::<HeroBehavior>();
       let deadlies = w.read::<Deadly>();
       let checkpoints = w.read::<Checkpoint>();
       let hero_events = w.write_resource::<Vec<events::Hero>>();
       let phys_events = w.read_resource::<Vec<events::Physics>>();
-      (pos, vel, col, sprites, heroes, deadlies, checkpoints, hero_events, phys_events)
+      (w.entities(), pos, vel, col, songs, sprites, heroes, deadlies, checkpoints, hero_events, phys_events)
     });
     hero_events.clear();
     let input = context.input.current();
@@ -87,14 +88,19 @@ impl System<Context> for Hero {
       }
     }
 
-    // Jump around, Jump around
-    for mut val in (&mut positions, &mut velocities, &mut sprites, &mut heroes).iter() {
+    for (entity, _) in (&entities, &heroes).iter() {
+      if input.1.contains(input::WHISTLE) && !input.0.contains(input::WHISTLE) {
+        songs.insert(arg.create(), Song::new(entity));
+      }
+    }
+
+    for mut val in (&positions, &mut velocities, &mut sprites, &mut heroes).iter() {
       update(&mut val, input);
     }
   }
 }
 
-fn update(&mut (_, ref mut vel, ref mut sprite, ref mut hero): &mut (&mut Position, &mut Velocity, &mut Sprite, &mut HeroBehavior), inputs: (input::Input, input::Input)) {
+fn update(&mut (ref pos, ref mut vel, ref mut sprite, ref mut hero): &mut (&Position, &mut Velocity, &mut Sprite, &mut HeroBehavior), inputs: (input::Input, input::Input)) {
   hero.hang_state.update(vel.y);
   vel.y = hero.hang_state.get_yvel();
 

@@ -12,7 +12,7 @@ pub enum Game {
 #[derive(Debug, Clone)]
 pub enum Hero {
   Dead(Entity),
-  Checkpoint((f64, f64)),
+  Checkpoint((f64, f64))
 }
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]

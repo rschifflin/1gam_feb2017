@@ -23,6 +23,7 @@ pub fn register(world: &mut World) {
   world.register::<Deadly>();
   world.register::<Checkpoint>();
   world.register::<StaticGeom>();
+  world.register::<Song>();
 
   world //Initial Game State
     .create_now()
