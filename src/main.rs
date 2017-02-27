@@ -57,7 +57,7 @@ impl App {
     let mut frame = window.draw();
     frame.clear_color(0.0, 0.0, 1.0, 1.0);
     self.gl.draw(&mut frame, args.viewport(), |c, g| {
-      ui.draw(c, g);
+      //ui.draw(c, g);
       Self::render_gfx(c, g, texture, world);
     });
 
@@ -74,32 +74,40 @@ impl App {
     let blast_zones = world.read::<components::BlastZone>();
     let game_state = world.read::<components::GameState>();
     for camera in (&cameras).iter() {
+      let screen = c.viewport.unwrap().draw_size;
+      let scale_x = screen[0] as f64 / camera.screen.w;
+      let scale_y = screen[1] as f64 / camera.screen.h;
+      let xform = c.transform.scale(scale_x, scale_y);
+
       for (pos, col, _) in (&positions, &collision, !&sprites).iter() {
-        let xform = c.transform.trans(pos.x - camera.screen.x, pos.y - camera.screen.y);
-        rectangle(colors::RED, [0.0, 0.0, col.bounds.dims().x, col.bounds.dims().y], xform, g);
+        let gameplay_area = camera.gameplay_area();
+        rectangle(colors::RED, [pos.x - gameplay_area.x, pos.y - gameplay_area.y, col.bounds.dims().x, col.bounds.dims().y], xform, g);
       };
 
       for (pos, sprite) in (&positions, &sprites).iter() {
-        sprite.as_image(pos.x - camera.screen.x, pos.y - camera.screen.y).map(|graphic| {
+        let gameplay_area = camera.gameplay_area();
+        sprite.as_image(pos.x - gameplay_area.x, pos.y - gameplay_area.y).map(|graphic| {
           let draw_state = graphics::DrawState::default();
-          graphic.draw_tri(texture, &draw_state, c.transform, g);
+          graphic.draw_tri(texture, &draw_state, xform, g);
         });
       };
 
       for (pos, col, _) in (&positions, &collision, &blast_zones).iter() {
-        let xform = c.transform.trans(pos.x - camera.screen.x, pos.y - camera.screen.y);
-        rectangle(colors::YELLOW, [0.0, 0.0, col.bounds.dims().x, col.bounds.dims().y], xform, g);
+        let gameplay_area = camera.gameplay_area();
+        rectangle(colors::YELLOW, [pos.x - gameplay_area.x, pos.y - gameplay_area.y, col.bounds.dims().x, col.bounds.dims().y], xform, g);
       };
 
       for (pos, col, _) in (&positions, &collision, &checkpoints).iter() {
-        let xform = c.transform.trans(pos.x - camera.screen.x, pos.y - camera.screen.y);
-        rectangle(colors::PURPLE, [0.0, 0.0, col.bounds.dims().x, col.bounds.dims().y], xform, g);
+        let gameplay_area = camera.gameplay_area();
+        rectangle(colors::PURPLE, [pos.x - gameplay_area.x, pos.y - gameplay_area.y, col.bounds.dims().x, col.bounds.dims().y], xform, g);
       };
 
       game_state.iter().next().map(|state| {
         /*
-         * Draw progress indicator
+         * Draw ui in this area
         */
+        let ui_area = camera.ui_area();
+        rectangle(colors::PURPLE, [ui_area.x, ui_area.y, ui_area.w, ui_area.h], xform, g);
       });
     }
   }
