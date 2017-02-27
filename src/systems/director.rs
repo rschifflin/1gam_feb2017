@@ -132,7 +132,7 @@ fn create_entities(world: &World, game_state: &mut GameState, &mut (ref mut coll
     .create_later_build()
     .with::<Camera>(Camera {
       target: hero.clone(),
-      screen: Rect::new(0.0,0.0,640.0,480.0),
+      screen: Rect::new(0.0,0.0,852.0,480.0),
       bounds: Rect::new(0.0, 0.0, (map.width * map.tilewidth) as f64, (map.height * map.tileheight) as f64)
     })
     .build(); //Initial Camera

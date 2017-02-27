@@ -43,7 +43,6 @@ use specs::{/*RunArg,*/ Join, World};
 //use sound::{SoundEvent, spawn_audio_thread};
 
 pub struct App {
-  ui: ui::Ui, //Conrod drawing context
   gl: Glium2d, // OpenGL drawing backend.
   context: world::Context,
   planner: specs::Planner<world::Context>,
@@ -53,11 +52,9 @@ pub struct App {
 impl App {
   fn render(&mut self, args: &RenderArgs, window: &mut glium_graphics::GliumWindow, texture: &Texture) {
     let world = self.planner.mut_world();
-    let ui = &mut self.ui;
     let mut frame = window.draw();
     frame.clear_color(0.0, 0.0, 1.0, 1.0);
     self.gl.draw(&mut frame, args.viewport(), |c, g| {
-      //ui.draw(c, g);
       Self::render_gfx(c, g, texture, world);
     });
 
@@ -102,27 +99,19 @@ impl App {
         rectangle(colors::PURPLE, [pos.x - gameplay_area.x, pos.y - gameplay_area.y, col.bounds.dims().x, col.bounds.dims().y], xform, g);
       };
 
+      let ui_area = camera.ui_area();
+      rectangle(colors::BLACK, [ui_area.x, ui_area.y, ui_area.w, ui_area.h], xform, g);
+
       game_state.iter().next().map(|state| {
-        /*
-         * Draw ui in this area
-        */
-        let ui_area = camera.ui_area();
-        rectangle(colors::PURPLE, [ui_area.x, ui_area.y, ui_area.w, ui_area.h], xform, g);
+        let draw_state = graphics::DrawState::default();
+        for graphic in ui::draw(state.progress, &ui_area) {
+          graphic.draw_tri(texture, &draw_state, xform, g);
+        }
       });
     }
   }
 
   fn input(&mut self, args: &Input) {
-    /*
-      Input::Resize(w, h) => println!("Resizing: {}, {}", w, h),
-    */
-
-    /*self.ui.ui.handle_event(args.clone());
-
-    use components::control::player::Direction;
-    let Context { p1_paddle, p2_paddle, .. } = self.context.clone();
-    */
-
     let mut input = &mut self.context.input;
     match *args {
       /*
@@ -147,7 +136,6 @@ impl App {
   }
 
   fn update(&mut self, &UpdateArgs { dt }: &UpdateArgs) {
-    self.ui.update();
     self.time_since_update += dt;
     if self.time_since_update > 0.0166666 {
       self.planner.dispatch(self.context.clone());
@@ -166,14 +154,13 @@ fn main() {
   let opengl = OpenGL::V3_2;
   let mut window: GliumWindow = WindowSettings::new(
     "Noteworthy",
-    [640, 480]
+    [852, 480]
   )
     .opengl(opengl)
     .exit_on_esc(true)
     .build()
     .unwrap();
 
-  let mut ui = ui::Ui::new(&mut window);
   // Create a new game and run it.
   let mut world = specs::World::new();
   world::register(&mut world);
@@ -192,7 +179,6 @@ fn main() {
   };
 
   let mut app = App {
-    ui: ui,
     gl: Glium2d::new(opengl, &window),
     context: context,
     planner: planner,
