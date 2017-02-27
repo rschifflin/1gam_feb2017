@@ -146,7 +146,7 @@ fn create_entities(world: &World, game_state: &mut GameState, &mut (ref mut coll
       group: CGroup::Enemy
     })
     .with::<Physical>(Physical {})
-    .with::<Sprite>(Sprite::new(Graphic::Bird))
+    .with::<Sprite>(Sprite::new(Graphic::Bird, Layer::Layer5))
     .with::<Deadly>(Deadly {})
     .with::<Velocity>(Velocity::zero())
     .build(); //Some enemy object
@@ -184,7 +184,7 @@ fn create_hero(world: &World, game_state: &GameState) -> Entity {
       group: CGroup::Friendly
     })
     .with::<Physical>(Physical {})
-    .with::<Sprite>(Sprite::new(Graphic::Hero))
+    .with::<Sprite>(Sprite::new(Graphic::Hero, Layer::Layer4))
     .with::<Hero>(Hero::new(progress))
     .with::<Velocity>(Velocity::zero())
     .build() //Hero
@@ -245,6 +245,7 @@ fn create_static_geom(world: &World, map: &map::Map, collider: &mut Collider<CGr
               .create_later_build()
               .with::<Position>(pos)
               .with::<Collision>(col)
+              .with::<Sprite>(Sprite::new(Graphic::Block, Layer::Layer1))
               .with::<StaticGeom>(StaticGeom {})
               .build(); //Floor block
             let id = systems::physics::id_for(&eid, priority);

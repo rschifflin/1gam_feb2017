@@ -16,7 +16,7 @@ pub mod collision;
 pub use self::collision::Collision;
 pub use self::physical::Physical;
 pub use self::position::Position;
-pub use self::sprite::{Sprite, Graphic, NoteType};
+pub use self::sprite::{Sprite, Graphic, NoteType, Layer};
 pub use self::velocity::Velocity;
 pub use self::camera::Camera;
 pub use self::blast_zone::BlastZone;

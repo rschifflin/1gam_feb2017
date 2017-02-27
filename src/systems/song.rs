@@ -1,4 +1,4 @@
-use components::{self, Position, Sprite, Graphic, NoteType, SongLength};
+use components::{self, Position, Sprite, Graphic, NoteType, SongLength, Layer};
 use specs::{System, RunArg, Join};
 use systems::NamedSystem;
 use world::Context;
@@ -45,7 +45,7 @@ impl System<Context> for Song {
             1 => NoteType::Second,
             _ => NoteType::First
           };
-          sprites.insert(next_note, Sprite::new(Graphic::Note(note_type)));
+          sprites.insert(next_note, Sprite::new(Graphic::Note(note_type), Layer::Layer6));
           song.notes.push(next_note);
         }
       }

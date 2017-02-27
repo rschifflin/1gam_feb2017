@@ -39,6 +39,7 @@ use glium_graphics::{Glium2d, GliumGraphics, OpenGL, GliumWindow};
 use glium_graphics::Texture;
 use glium::{Surface, Frame};
 use specs::{/*RunArg,*/ Join, World};
+use itertools::Itertools;
 //use futures::sync::mpsc::channel;
 //use sound::{SoundEvent, spawn_audio_thread};
 
@@ -63,6 +64,7 @@ impl App {
 
   fn render_gfx(c: graphics::Context, g: &mut GliumGraphics<Frame>, texture: &Texture, world: &mut World) {
     use graphics::{rectangle, Transformed};
+    use graphics::types::{Rectangle, SourceRectangle};
     let positions = world.read::<components::Position>();
     let sprites = world.read::<components::Sprite>();
     let collision = world.read::<components::Collision>();
@@ -75,38 +77,30 @@ impl App {
       let scale_x = screen[0] as f64 / camera.screen.w;
       let scale_y = screen[1] as f64 / camera.screen.h;
       let xform = c.transform.scale(scale_x, scale_y);
+      let draw_state = graphics::DrawState::default();
+      let gameplay_area = camera.gameplay_area();
+      let ui_area = camera.ui_area();
 
-      for (pos, col, _) in (&positions, &collision, !&sprites).iter() {
-        let gameplay_area = camera.gameplay_area();
-        rectangle(colors::RED, [pos.x - gameplay_area.x, pos.y - gameplay_area.y, col.bounds.dims().x, col.bounds.dims().y], xform, g);
-      };
+      let mut images: Vec<(Rectangle, SourceRectangle)> = (&positions, &sprites).iter().filter_map(|(pos, sprite)| {
+        sprite
+          .as_image_rects(pos.x - gameplay_area.x, pos.y - gameplay_area.y)
+          .map(|(rect, source_rect)| (rect, source_rect, sprite.layer as usize))
+      }).sorted_by(|&(_, _, l1), &(_, _, ref l2)| l1.cmp(l2))
+        .iter()
+        .map(|&(rect, src, _)| (rect, src))
+        .collect();
 
-      for (pos, sprite) in (&positions, &sprites).iter() {
-        let gameplay_area = camera.gameplay_area();
-        sprite.as_image(pos.x - gameplay_area.x, pos.y - gameplay_area.y).map(|graphic| {
-          let draw_state = graphics::DrawState::default();
-          graphic.draw_tri(texture, &draw_state, xform, g);
-        });
-      };
-
+      rectangle(colors::BLACK, [ui_area.x, ui_area.y, ui_area.w, ui_area.h], xform, g);
       for (pos, col, _) in (&positions, &collision, &blast_zones).iter() {
-        let gameplay_area = camera.gameplay_area();
         rectangle(colors::YELLOW, [pos.x - gameplay_area.x, pos.y - gameplay_area.y, col.bounds.dims().x, col.bounds.dims().y], xform, g);
       };
-
       for (pos, col, _) in (&positions, &collision, &checkpoints).iter() {
-        let gameplay_area = camera.gameplay_area();
         rectangle(colors::PURPLE, [pos.x - gameplay_area.x, pos.y - gameplay_area.y, col.bounds.dims().x, col.bounds.dims().y], xform, g);
       };
 
-      let ui_area = camera.ui_area();
-      rectangle(colors::BLACK, [ui_area.x, ui_area.y, ui_area.w, ui_area.h], xform, g);
-
+      graphics::image::draw_many(&images, colors::WHITE, texture, &draw_state, xform, g);
       game_state.iter().next().map(|state| {
-        let draw_state = graphics::DrawState::default();
-        for graphic in ui::draw(state.progress, &ui_area) {
-          graphic.draw_tri(texture, &draw_state, xform, g);
-        }
+        graphics::image::draw_many(&ui::draw(state.progress, &ui_area), colors::WHITE, texture, &draw_state, xform, g);
       });
     }
   }
