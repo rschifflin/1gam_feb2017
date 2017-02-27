@@ -89,8 +89,8 @@ impl App {
         .iter()
         .map(|&(rect, src, _)| (rect, src))
         .collect();
+      graphics::image::draw_many(&images, colors::WHITE, texture, &draw_state, xform, g);
 
-      rectangle(colors::BLACK, [ui_area.x, ui_area.y, ui_area.w, ui_area.h], xform, g);
       for (pos, col, _) in (&positions, &collision, &blast_zones).iter() {
         rectangle(colors::YELLOW, [pos.x - gameplay_area.x, pos.y - gameplay_area.y, col.bounds.dims().x, col.bounds.dims().y], xform, g);
       };
@@ -98,7 +98,7 @@ impl App {
         rectangle(colors::PURPLE, [pos.x - gameplay_area.x, pos.y - gameplay_area.y, col.bounds.dims().x, col.bounds.dims().y], xform, g);
       };
 
-      graphics::image::draw_many(&images, colors::WHITE, texture, &draw_state, xform, g);
+      rectangle(colors::BLACK, [ui_area.x, ui_area.y, ui_area.w, ui_area.h], xform, g);
       game_state.iter().next().map(|state| {
         graphics::image::draw_many(&ui::draw(state.progress, &ui_area), colors::WHITE, texture, &draw_state, xform, g);
       });
