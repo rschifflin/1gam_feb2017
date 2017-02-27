@@ -13,6 +13,10 @@ impl Component for Camera {
 }
 
 impl Camera {
+  pub fn aspect_ratio(&self) -> f64 {
+    self.screen.h / self.screen.w
+  }
+
   pub fn gameplay_area(&self) -> Rect {
     Rect::new(self.screen.x, self.screen.y, self.screen.w, self.screen.h * 0.85)
   }

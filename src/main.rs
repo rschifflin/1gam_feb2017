@@ -73,10 +73,23 @@ impl App {
     let blast_zones = world.read::<components::BlastZone>();
     let game_state = world.read::<components::GameState>();
     for camera in (&cameras).iter() {
-      let screen = c.viewport.unwrap().draw_size;
-      let scale_x = screen[0] as f64 / camera.screen.w;
-      let scale_y = screen[1] as f64 / camera.screen.h;
-      let xform = c.transform.scale(scale_x, scale_y);
+      let screen = c.viewport.unwrap().window_size;
+      let screen_ar = screen[0] as f64 / screen[1] as f64;
+      let letterbox_height = ((camera.screen.w / screen_ar) - camera.screen.h) / 2.0;
+
+      let scale = screen[0] as f64 / camera.screen.w;
+      let scaled_h = camera.screen.h * scale;
+
+      let letterboxes = if scaled_h < screen[1] as f64 {
+        Some(
+          [[0.0, -letterbox_height, camera.screen.w, letterbox_height],
+          [0.0, camera.screen.h, camera.screen.w, letterbox_height]]
+        )
+      } else { None };
+
+      let xform = c.transform
+        .scale(scale, scale)
+        .trans(0.0, letterboxes.map(|_| letterbox_height).unwrap_or(0.0));
       let draw_state = graphics::DrawState::default();
       let gameplay_area = camera.gameplay_area();
       let ui_area = camera.ui_area();
@@ -94,13 +107,17 @@ impl App {
       for (pos, col, _) in (&positions, &collision, &blast_zones).iter() {
         rectangle(colors::YELLOW, [pos.x - gameplay_area.x, pos.y - gameplay_area.y, col.bounds.dims().x, col.bounds.dims().y], xform, g);
       };
-      for (pos, col, _) in (&positions, &collision, &checkpoints).iter() {
-        rectangle(colors::PURPLE, [pos.x - gameplay_area.x, pos.y - gameplay_area.y, col.bounds.dims().x, col.bounds.dims().y], xform, g);
-      };
 
       rectangle(colors::BLACK, [ui_area.x, ui_area.y, ui_area.w, ui_area.h], xform, g);
       game_state.iter().next().map(|state| {
         graphics::image::draw_many(&ui::draw(state.progress, &ui_area), colors::WHITE, texture, &draw_state, xform, g);
+      });
+
+      letterboxes.map(|boxes| {
+        println!("Top letterbox: {:?}", boxes[0]);
+        println!("Bottom letterbox: {:?}", boxes[1]);
+        rectangle(colors::BLACK, boxes[0], xform, g);
+        rectangle(colors::BLACK, boxes[1], xform, g);
       });
     }
   }
@@ -162,10 +179,11 @@ fn main() {
   let mut planner = specs::Planner::<world::Context>::new(world, 4);
   systems::plan_system(&mut planner, systems::director::Director, 0);
   systems::plan_system(&mut planner, systems::behavior::Hero, 10);
+  systems::plan_system(&mut planner, systems::behavior::Bird, 11);
   systems::plan_system(&mut planner, systems::physics::Physics, 20);
   systems::plan_system(&mut planner, systems::camera::Camera, 30);
-  systems::plan_system(&mut planner, systems::sprite::Sprite, 30);
-  systems::plan_system(&mut planner, systems::song::Song, 30);
+  systems::plan_system(&mut planner, systems::sprite::Sprite, 31);
+  systems::plan_system(&mut planner, systems::song::Song, 32);
 
   let context = world::Context {
     input: input::InputBuffer::new(),

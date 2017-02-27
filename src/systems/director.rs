@@ -13,7 +13,7 @@ use serde_json;
 use systems::physics::{COLLIDE_GRANULARITY, COLLIDE_PADDING};
 use std::fs::File;
 use std::collections::HashMap;
-use progress::Progress;
+use progress::{self, Progress};
 use map;
 use events;
 use systems;
@@ -24,7 +24,6 @@ impl System<Context> for Director {
   fn run(&mut self, arg: RunArg, _: Context) {
     let (game_states, heroes, blast_zones, mut game_events, phys_events) = arg.fetch(|w| {
       let mut game_states = w.write::<components::GameState>();
-
       let hero_events = w.read_resource::<Vec<events::Hero>>();
       let mut camera_events = w.write_resource::<Vec<events::Camera>>();
       let mut game_events = w.write_resource::<Vec<events::Game>>();
@@ -32,15 +31,19 @@ impl System<Context> for Director {
       let mut static_data = w.write_resource::<(Collider<CGroup>, HashMap<u64, Entity>)>();
       let old_events = game_events.clone();
       game_events.clear();
+
+      //Locking Game State
       for event in old_events.iter() {
         let (mut game_state,) = (&mut game_states,).iter().next().unwrap();
         match *event {
           events::Game::Init => {
             game_events.push(events::Game::Level1);
           }
+          events::Game::UpdateProgress(progress) => {
+            game_state.progress |= progress;
+          }
           events::Game::Level1 => {
             game_state.level = 1;
-            game_state.progress = Progress::from_bits_truncate((game_state.progress.bits() << 1) | 1);
             phys_events.clear();
             camera_events.clear();
             delete_entities(w);
@@ -48,7 +51,6 @@ impl System<Context> for Director {
           },
           events::Game::Level2 => {
             game_state.level = 2;
-            game_state.progress = Progress::from_bits_truncate((game_state.progress.bits() << 1) | 1);
             phys_events.clear();
             camera_events.clear();
             delete_entities(w);
@@ -56,7 +58,6 @@ impl System<Context> for Director {
           }
           events::Game::Level3 => {
             game_state.level = 3;
-            game_state.progress = Progress::from_bits_truncate((game_state.progress.bits() << 1) | 1);
             phys_events.clear();
             camera_events.clear();
             delete_entities(w);
@@ -73,12 +74,25 @@ impl System<Context> for Director {
             let new_hero = create_hero(w, game_state);
             camera_events.push(events::Camera::Switch(dead_hero, new_hero));
           },
-          events::Hero::Checkpoint(new_spawn) => game_state.spawn = new_spawn
+          events::Hero::Checkpoint(new_spawn) => game_state.spawn = new_spawn,
+          _ => ()
         }
       }
 
-      let heroes = w.read::<components::behavior::Hero>();
+      let mut heroes = w.write::<components::behavior::Hero>();
       let blast_zones = w.read::<components::BlastZone>();
+
+      for event in old_events.iter() {
+        match *event {
+          events::Game::UpdateProgress(progress) => {
+            for mut hero in (&mut heroes).iter() {
+              *hero = Hero::new(progress);
+            }
+          },
+          _ => ()
+        }
+      }
+
       (game_states, heroes, blast_zones, game_events, phys_events)
     });
 
@@ -147,9 +161,9 @@ fn create_entities(world: &World, game_state: &mut GameState, &mut (ref mut coll
     })
     .with::<Physical>(Physical {})
     .with::<Sprite>(Sprite::new(Graphic::Bird, Layer::Layer5))
-    .with::<Deadly>(Deadly {})
+    .with::<Bird>(Bird::new(Progress::empty(), progress::DASH))
     .with::<Velocity>(Velocity::zero())
-    .build(); //Some enemy object
+    .build(); //Bird
 
   create_static_geom(world, &map, collider, lookup);
   create_boundaries(world, &map, collider, lookup);
@@ -314,11 +328,11 @@ fn create_checkpoints(world: &World, map: &map::Map) {
                 .create_later_build()
                 .with::<Position>(Position { x: x, y: y })
                 .with::<Collision>(Collision {
-                  bounds: Shape::new_rect(Vec2::new(w, h)),
+                  bounds: Shape::new_rect(Vec2::new(32.0, 64.0)),
                   priority: Priority::High,
                   group: CGroup::Static
                 })
-                .with::<Velocity>(Velocity::zero())
+                .with::<Sprite>(Sprite::new(Graphic::Checkpoint(false), Layer::Layer3))
                 .with::<Checkpoint>(Checkpoint {})
                 .build(); // Checkpoint
           })

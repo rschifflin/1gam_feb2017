@@ -1,5 +1,6 @@
 use std::fmt::Debug;
 use specs::Entity;
+use progress::Progress;
 
 #[derive(Debug, Clone)]
 pub enum Game {
@@ -7,12 +8,14 @@ pub enum Game {
   Level1,
   Level2,
   Level3,
+  UpdateProgress(Progress)
 }
 
 #[derive(Debug, Clone)]
 pub enum Hero {
   Dead(Entity),
-  Checkpoint((f64, f64))
+  Checkpoint((f64, f64)),
+  Singing(Entity, Progress)
 }
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]

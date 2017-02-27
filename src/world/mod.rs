@@ -16,6 +16,7 @@ pub fn register(world: &mut World) {
   world.register::<Sprite>();
   world.register::<Velocity>();
   world.register::<Hero>();
+  world.register::<Bird>();
   world.register::<Camera>();
   world.register::<BlastZone>();
   world.register::<Essential>();

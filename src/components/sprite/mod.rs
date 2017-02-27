@@ -2,6 +2,7 @@ mod hero;
 mod bird;
 mod note;
 mod block;
+mod checkpoint;
 
 use graphics::types::{Rectangle, SourceRectangle};
 use specs::{Component, VecStorage};
@@ -13,6 +14,7 @@ pub enum Graphic {
   Bird,
   Block,
   Note(note::NoteType),
+  Checkpoint(bool)
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -63,7 +65,8 @@ impl Sprite {
       Graphic::Hero => hero::draw(self, x, y),
       Graphic::Bird => bird::draw(self, x, y),
       Graphic::Block => block::draw(self, x, y),
-      Graphic::Note(note_type) => note::draw(self, note_type, x, y)
+      Graphic::Note(note_type) => note::draw(self, note_type, x, y),
+      Graphic::Checkpoint(checked) => if checked { checkpoint::draw_checked(self, x, y) } else { checkpoint::draw_unchecked(self, x, y) }
     }
   }
 }

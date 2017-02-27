@@ -1,4 +1,4 @@
-use components::{Checkpoint, Collision, Position, Velocity, Deadly, Sprite, Song};
+use components::{Checkpoint, Collision, Position, Velocity, Deadly, Sprite, Song, Graphic, Layer};
 use components::behavior::Hero as HeroBehavior;
 use specs::{World, Entity, Entities, System, RunArg, Join};
 use systems::NamedSystem;
@@ -35,18 +35,6 @@ impl System<Context> for Hero {
 
     //Physics event checking
     {
-      let mut collide_hero_deadly = |hero: Entity, _: Entity, events: &mut Vec<events::Hero>| {
-        collisions.remove(hero);
-        events.push(events::Hero::Dead(hero));
-      };
-
-      let collide_hero_checkpoint = |hero: Entity, checkpoint: Entity, events: &mut Vec<events::Hero>| {
-        positions.get(hero).map(|pos| {
-          arg.delete(checkpoint);
-          events.push(events::Hero::Checkpoint((pos.x, pos.y)));
-        });
-      };
-
       for phys_event in phys_events.iter() {
         match *phys_event {
           events::Physics::Collide(e1, e2) => {
@@ -62,10 +50,15 @@ impl System<Context> for Hero {
 
             match (lhs, rhs) {
               (hero, deadly) | (deadly, hero) if (hero.1.contains(HERO_FLAG) && deadly.1.contains(DEADLY_FLAG)) => {
-                collide_hero_deadly(hero.0, deadly.0, &mut hero_events);
+                collisions.remove(hero.0);
+                hero_events.push(events::Hero::Dead(hero.0));
               },
               (hero, cp) | (cp, hero) if (hero.1.contains(HERO_FLAG) && cp.1.contains(CHECKPOINT_FLAG)) => {
-                collide_hero_checkpoint(hero.0, cp.0, &mut hero_events);
+                positions.get(hero.0).map(|pos| {
+                  collisions.remove(cp.0);
+                  sprites.insert(cp.0, Sprite::new(Graphic::Checkpoint(true), Layer::Layer3));
+                  hero_events.push(events::Hero::Checkpoint((pos.x, pos.y)));
+                });
               },
               _ => ()
             }
@@ -90,6 +83,7 @@ impl System<Context> for Hero {
 
     for (entity, hero) in (&entities, &heroes).iter() {
       if input.1.contains(input::WHISTLE) && !input.0.contains(input::WHISTLE) {
+        hero_events.push(events::Hero::Singing(entity, hero.progress));
         songs.insert(arg.create(), Song::new(entity, hero.progress));
       }
     }
