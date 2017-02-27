@@ -25,4 +25,4 @@ pub use self::game_state::GameState;
 pub use self::deadly::Deadly;
 pub use self::checkpoint::Checkpoint;
 pub use self::static_geom::StaticGeom;
-pub use self::song::Song;
+pub use self::song::{Song, SongLength};

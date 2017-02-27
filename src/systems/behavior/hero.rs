@@ -88,9 +88,9 @@ impl System<Context> for Hero {
       }
     }
 
-    for (entity, _) in (&entities, &heroes).iter() {
+    for (entity, hero) in (&entities, &heroes).iter() {
       if input.1.contains(input::WHISTLE) && !input.0.contains(input::WHISTLE) {
-        songs.insert(arg.create(), Song::new(entity));
+        songs.insert(arg.create(), Song::new(entity, hero.progress));
       }
     }
 

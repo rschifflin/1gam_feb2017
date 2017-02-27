@@ -1,11 +1,10 @@
-use components::{self, Position, Sprite, Graphic, NoteType};
+use components::{self, Position, Sprite, Graphic, NoteType, SongLength};
 use specs::{System, RunArg, Join};
 use systems::NamedSystem;
 use world::Context;
 use events;
 
 const NOTE_KEYFRAME: usize = 40;
-const TTL: usize = NOTE_KEYFRAME*4;
 
 pub struct Song;
 
@@ -20,7 +19,14 @@ impl System<Context> for Song {
     });
 
     for (ref entity, ref mut song) in (&entities, &mut songs).iter() {
-      if song.frame >= TTL {
+      let ttl = match song.length {
+        SongLength::OneNote  => NOTE_KEYFRAME,
+        SongLength::TwoNotes => 2*NOTE_KEYFRAME,
+        SongLength::ThreeNotes => 3*NOTE_KEYFRAME,
+        SongLength::FourNotes => 4*NOTE_KEYFRAME
+      };
+
+      if song.frame >= ttl {
           for note in song.notes.iter() { arg.delete(*note); }
           arg.delete(*entity);
       } else {
