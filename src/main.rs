@@ -1,11 +1,8 @@
 #![feature(windows_subsystem)]
 #![windows_subsystem = "windows"]
 
-extern crate cpal;
-#[macro_use] extern crate conrod;
 #[macro_use] extern crate bitflags;
 extern crate float;
-extern crate futures;
 extern crate glium;
 extern crate glium_graphics;
 extern crate serde;
@@ -23,9 +20,6 @@ mod systems;
 mod geom;
 mod events;
 #[allow(dead_code)] mod colors;
-/*
-mod sound;
-*/
 mod world;
 mod input;
 mod map;
@@ -40,10 +34,8 @@ use piston::input::*;
 use glium_graphics::{Glium2d, GliumGraphics, OpenGL, GliumWindow};
 use glium_graphics::Texture;
 use glium::{Surface, Frame};
-use specs::{/*RunArg,*/ Join, World};
+use specs::{Join, World};
 use itertools::Itertools;
-//use futures::sync::mpsc::channel;
-//use sound::{SoundEvent, spawn_audio_thread};
 
 pub struct App {
   gl: Glium2d, // OpenGL drawing backend.
@@ -125,10 +117,6 @@ impl App {
   fn input(&mut self, args: &Input) {
     let mut input = &mut self.context.input;
     match *args {
-      /*
-      Input::Press(x) => println!("Pressed {:?}", x),
-      Input::Release(x) => println!("Released {:?}", x),
-      */
       Input::Press(Button::Keyboard(keyboard::Key::Up)) => input.on(input::UP),
       Input::Press(Button::Keyboard(keyboard::Key::Down)) => input.on(input::DOWN),
       Input::Press(Button::Keyboard(keyboard::Key::Left)) => input.on(input::LEFT),
@@ -157,11 +145,6 @@ impl App {
 }
 
 fn main() {
-  /*
-  let (sound_tx, sound_rx) = channel::<SoundEvent>(0);
-  spawn_audio_thread(sound_rx);
-  */
-
   let opengl = OpenGL::V3_2;
   let mut window: GliumWindow = WindowSettings::new(
     "Noteworthy",
@@ -187,8 +170,7 @@ fn main() {
   systems::plan_system(&mut planner, systems::song::Song, 32);
 
   let context = world::Context {
-    input: input::InputBuffer::new(),
-    //sound_tx: sound_tx
+    input: input::InputBuffer::new()
   };
 
   let mut app = App {
