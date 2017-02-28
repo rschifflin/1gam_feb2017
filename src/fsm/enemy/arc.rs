@@ -39,9 +39,7 @@ impl ArcFSM {
 }
 
 impl EnemyAi for ArcFSM {
-  fn on_collide(&mut self) {
-    self.is_clockwise = !self.is_clockwise;
-  }
+  fn on_collide(&mut self) {}
 
   fn get_vel(&self) -> (f64, f64) {
     let next_angle = if self.is_clockwise {

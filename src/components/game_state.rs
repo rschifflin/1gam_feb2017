@@ -1,5 +1,5 @@
 use specs::{Component, VecStorage};
-use progress::Progress;
+use progress::{self, Progress};
 
 #[derive(Debug)]
 
