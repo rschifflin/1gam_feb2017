@@ -39,32 +39,19 @@ impl System<Context> for Director {
         let (mut game_state,) = (&mut game_states,).iter().next().unwrap();
         match *event {
           events::Game::Init => {
-            game_events.push(events::Game::Level1);
-          }
+            game_events.push(events::Game::NextLevel);
+          },
           events::Game::UpdateProgress(progress) => {
             game_state.progress |= progress;
-          }
-          events::Game::Level1 => {
+          },
+          events::Game::NextLevel => {
             game_state.level = 1;
             phys_events.clear();
             camera_events.clear();
             delete_entities(w);
-            create_entities(w, &mut game_state, &mut static_data, "./assets/testmap.json");
+            let level = game_state.level;
+            create_entities(w, &mut game_state, &mut static_data, format!("./assets/level{}.json", level));
           },
-          events::Game::Level2 => {
-            game_state.level = 2;
-            phys_events.clear();
-            camera_events.clear();
-            delete_entities(w);
-            create_entities(w, &mut game_state, &mut static_data, "./assets/testmap2.json");
-          }
-          events::Game::Level3 => {
-            game_state.level = 3;
-            phys_events.clear();
-            camera_events.clear();
-            delete_entities(w);
-            create_entities(w, &mut game_state, &mut static_data, "./assets/testmap3.json");
-          }
         }
       }
 
@@ -105,13 +92,7 @@ impl System<Context> for Director {
         events::Physics::Collide(e1, e2) => {
           let (h1, h2) = (heroes.get(e1).is_some(), heroes.get(e2).is_some());
           let (b1, b2) = (blast_zones.get(e1).is_some(), blast_zones.get(e2).is_some());
-          if (h1 && b2) || (h2 && b1) {
-            match game_state.level {
-              1 => { game_events.push(events::Game::Level2) },
-              2 => { game_events.push(events::Game::Level3) },
-              _ => { game_events.push(events::Game::Level1) }
-            };
-          }
+          if (h1 && b2) || (h2 && b1) { game_events.push(events::Game::NextLevel) }
         },
         _ => ()
       }
@@ -132,7 +113,7 @@ fn delete_entities(world: &World) {
   };
 }
 
-fn create_entities(world: &World, game_state: &mut GameState, &mut (ref mut collider, ref mut lookup): &mut (Collider<CGroup>, HashMap<u64, Entity>), map_file: &'static str) {
+fn create_entities(world: &World, game_state: &mut GameState, &mut (ref mut collider, ref mut lookup): &mut (Collider<CGroup>, HashMap<u64, Entity>), map_file: String) {
   //Empty the statics
   *collider = Collider::new(COLLIDE_GRANULARITY, COLLIDE_PADDING);
   lookup.clear();
@@ -153,32 +134,27 @@ fn create_entities(world: &World, game_state: &mut GameState, &mut (ref mut coll
     })
     .build(); //Initial Camera
 
-  world
-    .create_later_build()
-    .with::<Position>(Position { x: 32.0, y: 32.0 })
-    .with::<Sprite>(Sprite::new(Graphic::Bird, Layer::Layer2))
-    .with::<Bird>(Bird::new(Progress::empty(), progress::DASH))
-    .build(); //Bird
-
-  create_static_geom(world, &map, collider, lookup);
+  create_from_object_layer(world, &map, collider, lookup);
+  create_from_tile_layer(world, &map, collider, lookup);
   create_boundaries(world, &map, collider, lookup);
-  create_blast_zone(world, &map);
-  create_enemies(world, &map);
-  //create_checkpoints(world, &map);
+  //create_enemies(world, &map);
 }
 
 fn find_start(map: &map::Map) -> (f64, f64) {
+  let (tile_w, tile_h) = (map.tilewidth as f64, map.tileheight as f64);
   map.layers
     .iter()
-    .find(|layer| layer.layer_type == map::LayerType::ObjectGroup)
-    .and_then(|layer| {
-      layer.objects
-        .as_ref()
-        .and_then(|objects| objects
-          .iter()
-          .find(|obj| obj.object_type == map::ObjectType::Start))
-      .map(|obj| (obj.x as f64, obj.y as f64))
-    }).unwrap()
+    .find(|layer| layer.layer_type == map::LayerType::TileLayer)
+    .and_then(|layer| layer.data.as_ref().and_then(|data| {
+      data.chunks(map.height)
+        .enumerate()
+        .map(|(row_index, row)| {
+          row.iter().enumerate()
+            .find(|&(col_index, id)| map::tile_from_id(*id) == map::Tile::HeroStart)
+            .map(|(col_index, _)| (col_index as f64 * tile_w, row_index as f64 * tile_h))
+        }).filter_map(|opt| opt)
+          .next()
+    })).unwrap()
 }
 
 fn create_hero(world: &World, game_state: &GameState) -> Entity {
@@ -200,32 +176,42 @@ fn create_hero(world: &World, game_state: &GameState) -> Entity {
     .build() //Hero
 }
 
-fn create_blast_zone(world: &World, map: &map::Map) {
-  let (x, y, w, h) = map.layers
+fn create_from_object_layer(world: &World, map: &map::Map, collider: &mut Collider<CGroup>, lookup: &mut HashMap<u64, Entity>) {
+  let (tile_w, tile_h) = (map.tilewidth as f64, map.tileheight as f64);
+  map.layers
     .iter()
     .find(|layer| layer.layer_type == map::LayerType::ObjectGroup)
-    .and_then(|layer| {
+    .map(|layer| {
       layer.objects
         .as_ref()
-        .and_then(|objects| objects
+        .map(|objects| objects
           .iter()
-          .find(|obj| obj.object_type == map::ObjectType::BlastZone))
-      .map(|obj| (obj.x as f64, obj.y as f64, obj.width as f64, obj.height as f64))
+          .foreach(|obj| {
+              let (x, y) = (obj.x as f64, obj.y as f64 - tile_h);
+              match obj.object_type {
+                map::ObjectType::Bird => {
+                  let requisite_progress = obj.properties.requisite_progress
+                    .map(|p| Progress::from_bits_truncate(p))
+                    .unwrap_or(Progress::empty());
+                  let reward_progress = obj.properties.reward_progress
+                    .map(|p| Progress::from_bits_truncate(p))
+                    .unwrap_or(progress::DASH);
+                  world
+                    .create_later_build()
+                    .with::<Position>(Position { x: x, y: y })
+                    .with::<Sprite>(Sprite::new(Graphic::Bird, Layer::Layer2))
+                    .with::<Bird>(Bird::new(requisite_progress, reward_progress))
+                    .build(); //Bird
+                },
+                _ => ()
+              }
+          })
+        )
     }).unwrap();
 
-  world
-    .create_later_build()
-    .with::<Position>(Position { x: x, y: y })
-    .with::<Collision>(Collision {
-      bounds: Shape::new_rect(Vec2::new(w, h)),
-      priority: Priority::High,
-      group: CGroup::Static
-    })
-    .with::<BlastZone>(BlastZone {})
-    .build(); //Blast Zone
 }
 
-fn create_static_geom(world: &World, map: &map::Map, collider: &mut Collider<CGroup>, lookup: &mut HashMap<u64, Entity>) {
+fn create_from_tile_layer(world: &World, map: &map::Map, collider: &mut Collider<CGroup>, lookup: &mut HashMap<u64, Entity>) {
   let (tile_w, tile_h) = (map.tilewidth as f64, map.tileheight as f64);
   map.layers
     .iter()
@@ -233,38 +219,55 @@ fn create_static_geom(world: &World, map: &map::Map, collider: &mut Collider<CGr
     .and_then(|layer| layer.data.as_ref().map(|data| {
       data.chunks(map.height).enumerate().foreach(|(row_index, row)| {
         row.iter().enumerate().foreach(|(col_index, id)| {
-          if *id == 7 {
-            let pos = Position { x: col_index as f64 * tile_w, y: row_index as f64 * tile_h };
-            let col = Collision {
-              bounds: Shape::new_rect(Vec2::new(tile_w, tile_h)),
-              priority: Priority::High,
-              group: CGroup::Static
-            };
-            let (priority, group) = (col.priority, col.group);
-            let hitbox_bounds = col.bounds;
-            let (bounds_w, bounds_h) = {
-              let dims = col.bounds.dims();
-              let w = dims.x;
-              let h = dims.y;
-              (w, h)
-            };
-            let hitbox_pos = vec2(pos.x + bounds_w/2.0, pos.y + bounds_h/2.0);
-            let mut hitbox = Hitbox::new(PlacedShape::new(hitbox_pos, hitbox_bounds));
-            hitbox.vel.pos = vec2(0.0, 0.0);
-            let eid = world
-              .create_later_build()
-              .with::<Position>(pos)
-              .with::<Collision>(col)
-              .with::<Sprite>(Sprite::new(Graphic::Block, Layer::Layer1))
-              .with::<StaticGeom>(StaticGeom {})
-              .build(); //Floor block
-            let id = systems::physics::id_for(&eid, priority);
-            lookup.insert(id, eid);
-            collider.add_hitbox_with_interactivity(id, hitbox, group);
+          match map::tile_from_id(*id) {
+            map::Tile::Floor => {
+              let pos = Position { x: col_index as f64 * tile_w, y: row_index as f64 * tile_h };
+              let col = Collision {
+                bounds: Shape::new_rect(Vec2::new(tile_w, tile_h)),
+                priority: Priority::High,
+                group: CGroup::Static
+              };
+              let (priority, group) = (col.priority, col.group);
+              let hitbox_bounds = col.bounds;
+              let (bounds_w, bounds_h) = {
+                let dims = col.bounds.dims();
+                let w = dims.x;
+                let h = dims.y;
+                (w, h)
+              };
+              let hitbox_pos = vec2(pos.x + bounds_w/2.0, pos.y + bounds_h/2.0);
+              let mut hitbox = Hitbox::new(PlacedShape::new(hitbox_pos, hitbox_bounds));
+              hitbox.vel.pos = vec2(0.0, 0.0);
+              let eid = world
+                .create_later_build()
+                .with::<Position>(pos)
+                .with::<Collision>(col)
+                .with::<Sprite>(Sprite::new(Graphic::Block, Layer::Layer1))
+                .with::<StaticGeom>(StaticGeom {})
+                .build(); //Floor block
+              let id = systems::physics::id_for(&eid, priority);
+              lookup.insert(id, eid);
+              collider.add_hitbox_with_interactivity(id, hitbox, group);
+            },
+            map::Tile::Checkpoint => {
+              let (x, y) = (col_index as f64 * tile_w, row_index as f64 * tile_h);
+              world
+                .create_later_build()
+                .with::<Position>(Position { x: x, y: y })
+                .with::<Collision>(Collision {
+                  bounds: Shape::new_rect(Vec2::new(32.0, 64.0)),
+                  priority: Priority::High,
+                  group: CGroup::Static
+                })
+                .with::<Sprite>(Sprite::new(Graphic::Checkpoint(false), Layer::Layer3))
+                .with::<Checkpoint>(Checkpoint {})
+                .build(); // Checkpoint
+            },
+            _ => ()
           }
         })
       })
-    })).unwrap_or_else(|| ());
+    })).unwrap_or(());
 }
 
 fn create_boundaries(world: &World, map: &map::Map, collider: &mut Collider<CGroup>, lookup: &mut HashMap<u64, Entity>) {
@@ -308,34 +311,7 @@ fn create_boundaries(world: &World, map: &map::Map, collider: &mut Collider<CGro
   }
 }
 
-fn create_checkpoints(world: &World, map: &map::Map) {
-  map.layers
-    .iter()
-    .find(|layer| layer.layer_type == map::LayerType::ObjectGroup)
-    .map(|layer| {
-      layer.objects
-        .as_ref()
-        .map(|objects| objects
-          .iter()
-          .filter(|obj| obj.object_type == map::ObjectType::Checkpoint)
-          .foreach(|obj| {
-              let (x, y, w, h) = (obj.x as f64, obj.y as f64, obj.width as f64, obj.height as f64);
-              world
-                .create_later_build()
-                .with::<Position>(Position { x: x, y: y })
-                .with::<Collision>(Collision {
-                  bounds: Shape::new_rect(Vec2::new(32.0, 64.0)),
-                  priority: Priority::High,
-                  group: CGroup::Static
-                })
-                .with::<Sprite>(Sprite::new(Graphic::Checkpoint(false), Layer::Layer3))
-                .with::<Checkpoint>(Checkpoint {})
-                .build(); // Checkpoint
-          })
-        )
-    }).unwrap();
-}
-
+/*
 fn create_enemies(world: &World, map: &map::Map) {
   map.layers
     .iter()
@@ -370,3 +346,4 @@ fn create_enemies(world: &World, map: &map::Map) {
         )
     }).unwrap();
 }
+*/

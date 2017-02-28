@@ -10,9 +10,15 @@ pub enum LayerType {
 
 #[derive(Debug, Deserialize, PartialEq)]
 pub enum ObjectType {
-  Start,
-  Checkpoint,
-  BlastZone
+  Bird
+}
+
+#[derive(Debug, Deserialize, PartialEq)]
+pub struct ObjectProperties {
+  // Bird properties
+  pub requisite_progress: Option<u32>,
+  pub reward_progress: Option<u32>
+  //
 }
 
 #[derive(Debug, Deserialize)]
@@ -23,7 +29,8 @@ pub struct Object {
   pub x: usize,
   pub y: usize,
   pub width: usize,
-  pub height: usize
+  pub height: usize,
+  pub properties: ObjectProperties
 }
 
 #[derive(Debug, Deserialize)]
@@ -53,4 +60,21 @@ pub struct Layer {
   pub data: Option<Vec<usize>>,
   pub objects: Option<Vec<Object>>,
   pub width: usize
+}
+
+#[derive(Debug, PartialEq)]
+pub enum Tile {
+  Blank,
+  HeroStart,
+  Floor,
+  Checkpoint
+}
+
+pub fn tile_from_id(id: usize) -> Tile {
+  match id {
+    1 => Tile::Floor,
+    2 => Tile::Checkpoint,
+    10 => Tile::HeroStart,
+    _ => Tile::Blank
+  }
 }

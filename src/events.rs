@@ -5,9 +5,7 @@ use progress::Progress;
 #[derive(Debug, Clone)]
 pub enum Game {
   Init,
-  Level1,
-  Level2,
-  Level3,
+  NextLevel,
   UpdateProgress(Progress)
 }
 
