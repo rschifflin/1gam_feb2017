@@ -17,6 +17,7 @@ pub struct Collision {
 #[derive(Debug, Copy, Clone)]
 pub enum Priority {
   Low = 0x00000000,
+  Enemy = 0x01000000,
   High = 0x10000000
 }
 

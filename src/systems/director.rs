@@ -18,6 +18,8 @@ use map;
 use events;
 use systems;
 
+use fsm::enemy::LeftRightFSM;
+
 pub struct Director;
 
 impl System<Context> for Director {
@@ -153,22 +155,16 @@ fn create_entities(world: &World, game_state: &mut GameState, &mut (ref mut coll
 
   world
     .create_later_build()
-    .with::<Position>(Position { x: 30.0, y: 30.0 })
-    .with::<Collision>(Collision {
-      bounds: Shape::new_rect(Vec2::new(64.0, 128.0)),
-      priority: Priority::Low,
-      group: CGroup::Enemy
-    })
-    .with::<Physical>(Physical {})
-    .with::<Sprite>(Sprite::new(Graphic::Bird, Layer::Layer5))
+    .with::<Position>(Position { x: 32.0, y: 32.0 })
+    .with::<Sprite>(Sprite::new(Graphic::Bird, Layer::Layer2))
     .with::<Bird>(Bird::new(Progress::empty(), progress::DASH))
-    .with::<Velocity>(Velocity::zero())
     .build(); //Bird
 
   create_static_geom(world, &map, collider, lookup);
   create_boundaries(world, &map, collider, lookup);
   create_blast_zone(world, &map);
-  create_checkpoints(world, &map);
+  create_enemies(world, &map);
+  //create_checkpoints(world, &map);
 }
 
 fn find_start(map: &map::Map) -> (f64, f64) {
@@ -334,6 +330,41 @@ fn create_checkpoints(world: &World, map: &map::Map) {
                 })
                 .with::<Sprite>(Sprite::new(Graphic::Checkpoint(false), Layer::Layer3))
                 .with::<Checkpoint>(Checkpoint {})
+                .build(); // Checkpoint
+          })
+        )
+    }).unwrap();
+}
+
+fn create_enemies(world: &World, map: &map::Map) {
+  map.layers
+    .iter()
+    .find(|layer| layer.layer_type == map::LayerType::ObjectGroup)
+    .map(|layer| {
+      layer.objects
+        .as_ref()
+        .map(|objects| objects
+          .iter()
+          .filter(|obj| obj.object_type == map::ObjectType::Checkpoint)
+          .foreach(|obj| {
+              let (x, y) = (obj.x as f64, obj.y as f64);
+              world
+                .create_later_build()
+                .with::<Position>(Position { x: x, y: y })
+                .with::<Collision>(Collision {
+                  bounds: Shape::new_rect(Vec2::new(32.0, 32.0)),
+                  priority: Priority::Enemy,
+                  group: CGroup::Enemy
+                })
+                .with::<Sprite>(Sprite::new(Graphic::Spikeblock, Layer::Layer6))
+                .with::<Velocity>(Velocity { x: 0.0, y: 0.0 } )
+                .with::<Deadly>(Deadly {})
+                .with::<Enemy>(Enemy::new(
+                    Box::new(
+                      LeftRightFSM::new(true, 4.0)
+                    )
+                  )
+                )
                 .build(); // Checkpoint
           })
         )

@@ -180,6 +180,7 @@ fn main() {
   systems::plan_system(&mut planner, systems::director::Director, 0);
   systems::plan_system(&mut planner, systems::behavior::Hero, 10);
   systems::plan_system(&mut planner, systems::behavior::Bird, 11);
+  systems::plan_system(&mut planner, systems::behavior::Enemy, 12);
   systems::plan_system(&mut planner, systems::physics::Physics, 20);
   systems::plan_system(&mut planner, systems::camera::Camera, 30);
   systems::plan_system(&mut planner, systems::sprite::Sprite, 31);
