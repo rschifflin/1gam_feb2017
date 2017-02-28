@@ -56,7 +56,6 @@ impl App {
   fn render(&mut self, args: &RenderArgs, window: &mut glium_graphics::GliumWindow, texture: &Texture) {
     let world = self.planner.mut_world();
     let mut frame = window.draw();
-    frame.clear_color(0.0, 0.0, 1.0, 1.0);
     self.gl.draw(&mut frame, args.viewport(), |c, g| {
       Self::render_gfx(c, g, texture, world);
     });
@@ -65,7 +64,7 @@ impl App {
   }
 
   fn render_gfx(c: graphics::Context, g: &mut GliumGraphics<Frame>, texture: &Texture, world: &mut World) {
-    use graphics::{rectangle, Transformed};
+    use graphics::{Graphics, rectangle, Transformed};
     use graphics::types::{Rectangle, SourceRectangle};
     let positions = world.read::<components::Position>();
     let sprites = world.read::<components::Sprite>();
@@ -73,7 +72,14 @@ impl App {
     let cameras = world.read::<components::Camera>();
     let checkpoints = world.read::<components::Checkpoint>();
     let blast_zones = world.read::<components::BlastZone>();
-    let game_state = world.read::<components::GameState>();
+    let game_states = world.read::<components::GameState>();
+    let game_state = game_states.iter().next().unwrap();
+
+    match game_state.level {
+      0 | 4 => g.clear_color([1.0, 1.0, 1.0, 1.0]),
+      _ => g.clear_color([0.0, 0.0, 1.0, 1.0])
+    }
+
     for camera in (&cameras).iter() {
       let screen = c.viewport.unwrap().window_size;
       let screen_ar = screen[0] as f64 / screen[1] as f64;
@@ -107,9 +113,7 @@ impl App {
       graphics::image::draw_many(&images, colors::WHITE, texture, &draw_state, xform, g);
 
       rectangle(colors::BLACK, [ui_area.x, ui_area.y, ui_area.w, ui_area.h], xform, g);
-      game_state.iter().next().map(|state| {
-        graphics::image::draw_many(&ui::draw(state.progress, &ui_area), colors::WHITE, texture, &draw_state, xform, g);
-      });
+      graphics::image::draw_many(&ui::draw(game_state, &ui_area), colors::WHITE, texture, &draw_state, xform, g);
 
       letterboxes.map(|boxes| {
         rectangle(colors::BLACK, boxes[0], xform, g);

@@ -2,6 +2,7 @@ use specs::{Entity, World};
 use components::*;
 use components::behavior::*;
 use events;
+use geom::Rect;
 use systems::physics::{COLLIDE_GRANULARITY, COLLIDE_PADDING};
 use collider::Collider;
 use components::collision::CGroup;
@@ -33,6 +34,16 @@ pub fn register(world: &mut World) {
     .with::<Essential>(Essential {})
     .build();
 
+  let target = world.create_later();
+  world //Initial Camera
+    .create_now()
+    .with::<Camera>(Camera {
+      target: target,
+      screen: Rect::new(0.0,0.0,852.0,480.0),
+      bounds: Rect::new(0.0,0.0,852.0,480.0)
+    })
+    .build();
+
   let phys_events: Vec<events::Physics> = vec![];
   world.add_resource(phys_events);
 
@@ -47,6 +58,6 @@ pub fn register(world: &mut World) {
   world.add_resource((collider, collider_lookup));
 
   let mut game_events: Vec<events::Game> = vec![];
-  game_events.push(events::Game::Init);
+  //game_events.push(events::Game::Init);
   world.add_resource(game_events);
 }

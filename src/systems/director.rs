@@ -12,10 +12,12 @@ use geom::Rect;
 use serde_json;
 use systems::physics::{COLLIDE_GRANULARITY, COLLIDE_PADDING};
 use std::fs::File;
+use std::cmp;
 use std::collections::HashMap;
 use progress::{self, Progress};
 use map;
 use events;
+use input;
 use systems;
 
 use fsm::enemy::{UpDownFSM, LeftRightFSM, ArcFSM, WanderFSM};
@@ -23,7 +25,7 @@ use fsm::enemy::{UpDownFSM, LeftRightFSM, ArcFSM, WanderFSM};
 pub struct Director;
 
 impl System<Context> for Director {
-  fn run(&mut self, arg: RunArg, _: Context) {
+  fn run(&mut self, arg: RunArg, cx: Context) {
     let (game_states, heroes, blast_zones, mut game_events, phys_events) = arg.fetch(|w| {
       let mut game_states = w.write::<components::GameState>();
       let hero_events = w.read_resource::<Vec<events::Hero>>();
@@ -45,12 +47,26 @@ impl System<Context> for Director {
             game_state.progress |= progress;
           },
           events::Game::NextLevel => {
-            game_state.level += 1;
+            let level = cmp::max((game_state.level + 1) % 5, 1);
+            game_state.level = level;
             phys_events.clear();
             camera_events.clear();
             delete_entities(w);
-            let level = game_state.level;
-            create_entities(w, &mut game_state, &mut static_data, format!("./assets/level{}.json", level));
+
+            if level < 4 {
+              create_entities(w, &mut game_state, &mut static_data, format!("./assets/level{}.json", level));
+            } else {
+              game_state.progress = Progress::empty();
+              let target = w.create_later();
+              w
+                .create_later_build()
+                .with::<Camera>(Camera {
+                  target: target,
+                  screen: Rect::new(0.0,0.0,852.0,480.0),
+                  bounds: Rect::new(0.0,0.0,852.0,480.0)
+                })
+                .build(); //Victory Camera
+            }
           },
         }
       }
@@ -86,6 +102,11 @@ impl System<Context> for Director {
     });
 
     let game_state = game_states.iter().next().unwrap();
+    let (last_input, next_input) = cx.input.current();
+    if (game_state.level == 0 || game_state.level == 4) &&
+       (next_input.contains(input::WHISTLE) && !last_input.contains(input::WHISTLE)) {
+         game_events.push(events::Game::NextLevel)
+    }
 
     for event in phys_events.iter() {
       match *event {
@@ -128,7 +149,7 @@ fn create_entities(world: &World, game_state: &mut GameState, &mut (ref mut coll
   world
     .create_later_build()
     .with::<Camera>(Camera {
-      target: hero.clone(),
+      target: hero,
       screen: Rect::new(0.0,0.0,852.0,480.0),
       bounds: Rect::new(0.0, 0.0, (map.width * map.tilewidth) as f64, (map.height * map.tileheight) as f64)
     })
