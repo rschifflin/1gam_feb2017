@@ -45,7 +45,7 @@ impl System<Context> for Director {
             game_state.progress |= progress;
           },
           events::Game::NextLevel => {
-            game_state.level = 1;
+            game_state.level += 1;
             phys_events.clear();
             camera_events.clear();
             delete_entities(w);

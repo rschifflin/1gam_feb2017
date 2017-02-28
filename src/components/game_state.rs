@@ -12,7 +12,7 @@ pub struct GameState {
 impl Default for GameState {
   fn default() -> GameState {
     GameState {
-      level: 1,
+      level: 0,
       spawn: (10.0, 10.0),
       progress: Progress::empty()
     }
