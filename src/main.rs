@@ -16,6 +16,7 @@ extern crate piston;
 extern crate specs;
 extern crate collider;
 extern crate itertools;
+extern crate rand;
 
 mod components;
 mod systems;

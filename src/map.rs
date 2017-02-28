@@ -12,15 +12,26 @@ pub enum LayerType {
 
 #[derive(Debug, Deserialize, PartialEq)]
 pub enum ObjectType {
-  Bird
+  Bird,
+  LeftRight,
+  UpDown,
+  Arc,
+  Pirate
 }
 
 #[derive(Debug, Deserialize, PartialEq)]
 pub struct ObjectProperties {
   // Bird properties
   pub requisite_progress: Option<u32>,
-  pub reward_progress: Option<u32>
+  pub reward_progress: Option<u32>,
   //
+
+  // Enemy Properties
+  pub speed: Option<f64>,
+  pub radius: Option<f64>,
+  pub angle: Option<f64>,
+  pub frequency: Option<f64>,
+  pub flip: Option<bool>
 }
 
 #[derive(Debug, Deserialize)]
@@ -70,6 +81,7 @@ pub enum Tile {
   HeroStart,
   Floor,
   Checkpoint,
+  Portal,
   Spike(Facing)
 }
 
@@ -77,6 +89,7 @@ pub fn tile_from_id(id: usize) -> Tile {
   match id {
     1 => Tile::Floor,
     2 => Tile::Checkpoint,
+    5 => Tile::Portal,
     10 => Tile::HeroStart,
     20 => Tile::Spike(Facing::Up),
     29 => Tile::Spike(Facing::Down),

@@ -1,4 +1,4 @@
-use components::{Position, Velocity};
+use components::{Position, Velocity, Sprite};
 use components::behavior::Enemy as EnemyBehavior;
 use specs::{Entity, System, RunArg, Join};
 use systems::NamedSystem;
@@ -9,12 +9,13 @@ pub struct Enemy;
 
 impl System<Context> for Enemy {
   fn run(&mut self, arg: RunArg, context: Context) {
-    let (entities, mut enemies, mut positions, mut velocities, phys_events) = arg.fetch(|w| {
+    let (entities, mut enemies, mut positions, mut velocities, mut sprites, phys_events) = arg.fetch(|w| {
       let enemies = w.write::<EnemyBehavior>();
       let pos = w.write::<Position>();
       let vel = w.write::<Velocity>();
+      let sprites = w.write::<Sprite>();
       let phys_events = w.write_resource::<Vec<events::Physics>>();
-      (w.entities(), enemies, pos, vel, phys_events)
+      (w.entities(), enemies, pos, vel, sprites, phys_events)
     });
 
     for phys_event in phys_events.iter() {
@@ -27,11 +28,17 @@ impl System<Context> for Enemy {
       }
     }
 
-    for (entity, enemy, vel) in (&entities, &mut enemies, &mut velocities).iter() {
+    for (entity, enemy, vel, sprite) in (&entities, &mut enemies, &mut velocities, &mut sprites).iter() {
       enemy.ai.update(vel.x, vel.y);
       let (vel_x, vel_y) = enemy.ai.get_vel();
       vel.x = vel_x;
       vel.y = vel_y;
+
+      if vel.x < 0.0 {
+        sprite.flip(true);
+      } else if vel.x > 0.0 {
+        sprite.flip(false);
+      }
     }
   }
 }

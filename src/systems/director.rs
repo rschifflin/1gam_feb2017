@@ -18,7 +18,7 @@ use map;
 use events;
 use systems;
 
-use fsm::enemy::LeftRightFSM;
+use fsm::enemy::{UpDownFSM, LeftRightFSM, ArcFSM, WanderFSM};
 
 pub struct Director;
 
@@ -137,7 +137,6 @@ fn create_entities(world: &World, game_state: &mut GameState, &mut (ref mut coll
   create_from_object_layer(world, &map, collider, lookup);
   create_from_tile_layer(world, &map, collider, lookup);
   create_boundaries(world, &map, collider, lookup);
-  //create_enemies(world, &map);
 }
 
 fn find_start(map: &map::Map) -> (f64, f64) {
@@ -203,7 +202,95 @@ fn create_from_object_layer(world: &World, map: &map::Map, collider: &mut Collid
                     .with::<Bird>(Bird::new(requisite_progress, reward_progress))
                     .build(); //Bird
                 },
-                _ => ()
+                map::ObjectType::LeftRight => {
+                  let speed = obj.properties.speed.unwrap_or(4.0);
+                  world
+                    .create_later_build()
+                    .with::<Position>(Position { x: x + 0.1, y: y + 0.1})
+                    .with::<Collision>(Collision {
+                      bounds: Shape::new_rect(Vec2::new(31.8, 31.8)),
+                      priority: Priority::Enemy,
+                      group: CGroup::Enemy
+                    })
+                    .with::<Sprite>(Sprite::new(Graphic::Spikeblock, Layer::Layer6))
+                    .with::<Velocity>(Velocity { x: 0.0, y: 0.0 } )
+                    .with::<Deadly>(Deadly {})
+                    .with::<Enemy>(Enemy::new(
+                        Box::new(
+                          LeftRightFSM::new(true, speed)
+                        )
+                      )
+                    )
+                    .build(); // Left<->Right spikey
+                },
+                map::ObjectType::UpDown => {
+                  let speed = obj.properties.speed.unwrap_or(4.0);
+                  world
+                    .create_later_build()
+                    .with::<Position>(Position { x: x + 0.1, y: y + 0.1})
+                    .with::<Collision>(Collision {
+                      bounds: Shape::new_rect(Vec2::new(31.8, 31.8)),
+                      priority: Priority::Enemy,
+                      group: CGroup::Enemy
+                    })
+                    .with::<Sprite>(Sprite::new(Graphic::Spikeblock, Layer::Layer6))
+                    .with::<Velocity>(Velocity { x: 0.0, y: 0.0 } )
+                    .with::<Deadly>(Deadly {})
+                    .with::<Enemy>(Enemy::new(
+                        Box::new(
+                          UpDownFSM::new(true, speed)
+                        )
+                      )
+                    )
+                    .build(); // Left<->Right spikey
+                },
+                map::ObjectType::Arc => {
+                  let speed = obj.properties.speed.unwrap_or(0.1);
+                  let radius = obj.properties.radius.unwrap_or(32.0);
+                  let angle = obj.properties.angle.unwrap_or(0.0);
+                  let flip = obj.properties.flip.unwrap_or(false);
+                  world
+                    .create_later_build()
+                    .with::<Position>(Position { x: x + 0.1, y: y + 0.1})
+                    .with::<Collision>(Collision {
+                      bounds: Shape::new_rect(Vec2::new(31.8, 31.8)),
+                      priority: Priority::Enemy,
+                      group: CGroup::Enemy
+                    })
+                    .with::<Sprite>(Sprite::new(Graphic::Spikeblock, Layer::Layer6))
+                    .with::<Velocity>(Velocity { x: 0.0, y: 0.0 } )
+                    .with::<Deadly>(Deadly {})
+                    .with::<Enemy>(Enemy::new(
+                        Box::new(
+                          ArcFSM::new(flip, radius, speed, angle)
+                        )
+                      )
+                    )
+                    .build(); // Left<->Right spikey
+                },
+                map::ObjectType::Pirate => {
+                  let frequency = obj.properties.frequency.unwrap_or(1.0);
+                  let speed = obj.properties.speed.unwrap_or(4.0);
+                  world
+                    .create_later_build()
+                    .with::<Position>(Position { x: x + 0.1, y: y + 0.1})
+                    .with::<Collision>(Collision {
+                      bounds: Shape::new_rect(Vec2::new(31.8, 31.8)),
+                      priority: Priority::Enemy,
+                      group: CGroup::Enemy
+                    })
+                    .with::<Physical>(Physical {})
+                    .with::<Sprite>(Sprite::new(Graphic::Enemy, Layer::Layer5))
+                    .with::<Velocity>(Velocity { x: 0.0, y: 0.0 } )
+                    .with::<Deadly>(Deadly {})
+                    .with::<Enemy>(Enemy::new(
+                        Box::new(
+                          WanderFSM::new(frequency, speed)
+                        )
+                      )
+                    )
+                    .build(); //Pirate duder
+                },
               }
           })
         )
@@ -264,17 +351,31 @@ fn create_from_tile_layer(world: &World, map: &map::Map, collider: &mut Collider
                 .build(); // Checkpoint
             },
             map::Tile::Spike(facing) => {
-              let (x, y) = (col_index as f64 * tile_w, row_index as f64 * tile_h);
+              let (x, y) = (col_index as f64 * tile_w + 0.1, row_index as f64 * tile_h + 0.1);
               world
                 .create_later_build()
                 .with::<Position>(Position { x: x, y: y })
                 .with::<Collision>(Collision {
-                  bounds: Shape::new_rect(Vec2::new(32.0, 32.0)),
+                  bounds: Shape::new_rect(Vec2::new(31.8, 31.8)),
                   priority: Priority::High,
                   group: CGroup::Static
                 })
                 .with::<Sprite>(Sprite::new(Graphic::Spikes(facing), Layer::Layer6))
                 .with::<Deadly>(Deadly {})
+                .build(); //Deadly deadly spikes
+            },
+            map::Tile::Portal => {
+              let (x, y) = (col_index as f64 * tile_w, row_index as f64 * tile_h);
+              world
+                .create_later_build()
+                .with::<Position>(Position { x: x, y: y })
+                .with::<Collision>(Collision {
+                  bounds: Shape::new_rect(Vec2::new(64.0, 64.0)),
+                  priority: Priority::High,
+                  group: CGroup::Static
+                })
+                .with::<Sprite>(Sprite::new(Graphic::Portal, Layer::Layer6))
+                .with::<BlastZone>(BlastZone {})
                 .build(); //Deadly deadly spikes
             },
             _ => ()
@@ -324,40 +425,3 @@ fn create_boundaries(world: &World, map: &map::Map, collider: &mut Collider<CGro
     collider.add_hitbox_with_interactivity(id, hitbox, group);
   }
 }
-
-/*
-fn create_enemies(world: &World, map: &map::Map) {
-  map.layers
-    .iter()
-    .find(|layer| layer.layer_type == map::LayerType::ObjectGroup)
-    .map(|layer| {
-      layer.objects
-        .as_ref()
-        .map(|objects| objects
-          .iter()
-          .filter(|obj| obj.object_type == map::ObjectType::Checkpoint)
-          .foreach(|obj| {
-              let (x, y) = (obj.x as f64, obj.y as f64);
-              world
-                .create_later_build()
-                .with::<Position>(Position { x: x, y: y })
-                .with::<Collision>(Collision {
-                  bounds: Shape::new_rect(Vec2::new(32.0, 32.0)),
-                  priority: Priority::Enemy,
-                  group: CGroup::Enemy
-                })
-                .with::<Sprite>(Sprite::new(Graphic::Spikeblock, Layer::Layer6))
-                .with::<Velocity>(Velocity { x: 0.0, y: 0.0 } )
-                .with::<Deadly>(Deadly {})
-                .with::<Enemy>(Enemy::new(
-                    Box::new(
-                      LeftRightFSM::new(true, 4.0)
-                    )
-                  )
-                )
-                .build(); // Checkpoint
-          })
-        )
-    }).unwrap();
-}
-*/
