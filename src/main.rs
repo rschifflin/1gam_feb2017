@@ -29,6 +29,7 @@ mod world;
 mod input;
 mod map;
 mod progress;
+mod facing;
 mod fsm;
 mod ui;
 

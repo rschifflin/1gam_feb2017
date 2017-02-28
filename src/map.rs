@@ -1,3 +1,5 @@
+use facing::Facing;
+
 #[derive(Debug, Deserialize, PartialEq)]
 pub enum LayerType {
   #[serde(rename = "tilelayer")]
@@ -67,7 +69,8 @@ pub enum Tile {
   Blank,
   HeroStart,
   Floor,
-  Checkpoint
+  Checkpoint,
+  Spike(Facing)
 }
 
 pub fn tile_from_id(id: usize) -> Tile {
@@ -75,6 +78,10 @@ pub fn tile_from_id(id: usize) -> Tile {
     1 => Tile::Floor,
     2 => Tile::Checkpoint,
     10 => Tile::HeroStart,
+    20 => Tile::Spike(Facing::Up),
+    29 => Tile::Spike(Facing::Down),
+    38 => Tile::Spike(Facing::Left),
+    47 => Tile::Spike(Facing::Right),
     _ => Tile::Blank
   }
 }

@@ -263,6 +263,20 @@ fn create_from_tile_layer(world: &World, map: &map::Map, collider: &mut Collider
                 .with::<Checkpoint>(Checkpoint {})
                 .build(); // Checkpoint
             },
+            map::Tile::Spike(facing) => {
+              let (x, y) = (col_index as f64 * tile_w, row_index as f64 * tile_h);
+              world
+                .create_later_build()
+                .with::<Position>(Position { x: x, y: y })
+                .with::<Collision>(Collision {
+                  bounds: Shape::new_rect(Vec2::new(32.0, 32.0)),
+                  priority: Priority::High,
+                  group: CGroup::Static
+                })
+                .with::<Sprite>(Sprite::new(Graphic::Spikes(facing), Layer::Layer6))
+                .with::<Deadly>(Deadly {})
+                .build(); //Deadly deadly spikes
+            },
             _ => ()
           }
         })

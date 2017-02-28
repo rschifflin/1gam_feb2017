@@ -3,10 +3,12 @@ mod bird;
 mod note;
 mod block;
 mod checkpoint;
+mod spikes;
 mod spikeblock;
 
 use graphics::types::{Rectangle, SourceRectangle};
 use specs::{Component, VecStorage};
+use facing::Facing;
 pub use self::note::NoteType;
 
 #[derive(Debug, Copy, Clone)]
@@ -16,7 +18,8 @@ pub enum Graphic {
   Block,
   Spikeblock,
   Note(note::NoteType),
-  Checkpoint(bool)
+  Checkpoint(bool),
+  Spikes(Facing)
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -69,7 +72,8 @@ impl Sprite {
       Graphic::Block => block::draw(self, x, y),
       Graphic::Note(note_type) => note::draw(self, note_type, x, y),
       Graphic::Checkpoint(checked) => if checked { checkpoint::draw_checked(self, x, y) } else { checkpoint::draw_unchecked(self, x, y) },
-      Graphic::Spikeblock => spikeblock::draw(self, x, y)
+      Graphic::Spikeblock => spikeblock::draw(self, x, y),
+      Graphic::Spikes(facing) => spikes::draw(self, facing, x, y)
     }
   }
 }
