@@ -94,11 +94,16 @@ impl App {
       let gameplay_area = camera.gameplay_area();
       let ui_area = camera.ui_area();
 
-      let mut images: Vec<(Rectangle, SourceRectangle)> = (&positions, &sprites).iter().filter_map(|(pos, sprite)| {
-        sprite
-          .as_image_rects(pos.x - gameplay_area.x, pos.y - gameplay_area.y)
-          .map(|(rect, source_rect)| (rect, source_rect, sprite.layer as usize))
-      }).sorted_by(|&(_, _, l1), &(_, _, ref l2)| l1.cmp(l2))
+      let mut images: Vec<(Rectangle, SourceRectangle)> = (&positions, &sprites).iter()
+        .filter(|&(pos, _)| {
+          let x = pos.x - gameplay_area.x;
+          let y = pos.y - gameplay_area.y;
+          x > -128.0 && x <= 852.0 && y > -128.0 && y <= 480.0
+        }).filter_map(|(pos, sprite)| {
+          sprite
+            .as_image_rects(pos.x - gameplay_area.x, pos.y - gameplay_area.y)
+            .map(|(rect, source_rect)| (rect, source_rect, sprite.layer as usize))
+        }).sorted_by(|&(_, _, l1), &(_, _, ref l2)| l1.cmp(l2))
         .iter()
         .map(|&(rect, src, _)| (rect, src))
         .collect();
